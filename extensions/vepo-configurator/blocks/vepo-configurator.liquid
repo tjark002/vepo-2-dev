@@ -1,0 +1,241 @@
+{% comment %}
+  Vepo Product Configurator - Theme App Block
+  Place this block in your product page template via the Theme Editor.
+{% endcomment %}
+
+<div
+  id="vepo-configurator-block"
+  class="vepo_configurator"
+  data-vepo-product-id="{{ product.id }}"
+  data-vepo-product-handle="{{ product.handle }}"
+  data-vepo-product-price="{{ product.price | money_without_currency }}"
+  data-vepo-product-title="{{ product.title | escape }}"
+  data-vepo-variant-id="{{ product.selected_or_first_available_variant.id }}"
+  data-vepo-shop="{{ shop.permanent_domain }}"
+  data-vepo-currency="{{ shop.currency }}"
+  data-vepo-money-format="{{ shop.money_format | escape }}"
+  data-vepo-accent-color="{{ block.settings.accent_color }}"
+  data-vepo-btn-color="{{ block.settings.button_color }}"
+  data-vepo-btn-text-color="{{ block.settings.button_text_color }}"
+  data-vepo-btn-font-size="{{ block.settings.button_font_size }}"
+  data-vepo-btn-padding="{{ block.settings.button_padding }}"
+  data-vepo-btn-radius="{{ block.settings.button_border_radius }}"
+  data-vepo-btn-full-width="{{ block.settings.button_full_width }}"
+  data-vepo-input-bg="{{ block.settings.input_background_color }}"
+  data-vepo-input-color="{{ block.settings.input_text_color }}"
+  data-vepo-input-radius="{{ block.settings.input_border_radius }}"
+  data-vepo-headline-color="{{ block.settings.headline_color }}"
+  data-vepo-headline-size="{{ block.settings.headline_font_size }}"
+  data-vepo-option-spacing="{{ block.settings.option_spacing }}"
+  data-vepo-qty-style="{{ block.settings.quantity_style }}"
+  data-vepo-price-subtext="{{ block.settings.price_subtext | escape }}"
+  data-vepo-hide-surcharges="{{ block.settings.hide_surcharges }}"
+  data-vepo-input-style="{{ block.settings.input_style }}"
+  data-vepo-image-swatch-size="{{ block.settings.image_swatch_size }}"
+>
+  <div class="vepo_loading">
+    <div id="vepo-lottie-loader" style="width:120px;height:120px;margin:0 auto;"></div>
+  </div>
+</div>
+
+{{ 'vepo-configurator.css' | asset_url | stylesheet_tag }}
+<script src="{{ 'lottie-player.js' | asset_url }}" defer></script>
+<script src="{{ 'vepo-configurator.js' | asset_url }}" defer></script>
+<script>
+  (function() {
+    function initLottieLoader() {
+      var container = document.getElementById('vepo-lottie-loader');
+      if (container && typeof lottie !== 'undefined') {
+        lottie.loadAnimation({
+          container: container,
+          renderer: 'svg',
+          loop: true,
+          autoplay: true,
+          path: "{{ 'loading-animation.json' | asset_url }}"
+        });
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initLottieLoader);
+    } else {
+      initLottieLoader();
+    }
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Vepo Konfigurator",
+  "target": "section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Allgemein"
+    },
+    {
+      "type": "color",
+      "id": "accent_color",
+      "label": "Akzentfarbe",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "option_spacing",
+      "label": "Abstand zwischen Optionen",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "default": 16,
+      "unit": "px"
+    },
+    {
+      "type": "select",
+      "id": "quantity_style",
+      "label": "Mengenauswahl-Stil",
+      "options": [
+        { "value": "simple", "label": "Einfach (nur Eingabefeld)" },
+        { "value": "plus-minus", "label": "Plus/Minus Buttons" },
+        { "value": "stepper", "label": "Kompakter Stepper" }
+      ],
+      "default": "stepper"
+    },
+    {
+      "type": "text",
+      "id": "price_subtext",
+      "label": "Text unter dem Preis",
+      "default": "inkl. MwSt, zzgl. Versand",
+      "info": "Wird unter der Preisanzeige dargestellt. Leer lassen um auszublenden."
+    },
+    {
+      "type": "checkbox",
+      "id": "hide_surcharges",
+      "label": "Aufpreise ausblenden",
+      "default": false,
+      "info": "Blendet die Aufpreis-Anzeigen (+X€) bei den Optionen aus. Aufpreise werden weiterhin berechnet."
+    },
+    {
+      "type": "header",
+      "content": "Button-Einstellungen"
+    },
+    {
+      "type": "color",
+      "id": "button_color",
+      "label": "Button-Farbe",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "button_text_color",
+      "label": "Button-Textfarbe",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "button_font_size",
+      "label": "Button-Textgröße",
+      "min": 12,
+      "max": 24,
+      "step": 1,
+      "default": 16,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "button_padding",
+      "label": "Button-Padding",
+      "min": 5,
+      "max": 20,
+      "step": 1,
+      "default": 12,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "button_border_radius",
+      "label": "Button-Eckenradius",
+      "min": 0,
+      "max": 50,
+      "step": 1,
+      "default": 5,
+      "unit": "px"
+    },
+    {
+      "type": "checkbox",
+      "id": "button_full_width",
+      "label": "Button volle Breite",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "Input-Einstellungen"
+    },
+    {
+      "type": "select",
+      "id": "input_style",
+      "label": "Input-Stil",
+      "options": [
+        { "value": "classic", "label": "Klassisch (Rahmen)" },
+        { "value": "modern", "label": "Modern (Schatten)" },
+        { "value": "filled", "label": "Gefüllt" }
+      ],
+      "default": "filled"
+    },
+    {
+      "type": "color",
+      "id": "input_background_color",
+      "label": "Input-Hintergrundfarbe",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "input_text_color",
+      "label": "Input-Textfarbe",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "input_border_radius",
+      "label": "Input-Eckenradius",
+      "min": 0,
+      "max": 50,
+      "step": 1,
+      "default": 5,
+      "unit": "px"
+    },
+    {
+      "type": "header",
+      "content": "Bildkacheln"
+    },
+    {
+      "type": "range",
+      "id": "image_swatch_size",
+      "label": "Bildkachel-Größe",
+      "min": 80,
+      "max": 300,
+      "step": 10,
+      "default": 150,
+      "unit": "px"
+    },
+    {
+      "type": "header",
+      "content": "Überschriften"
+    },
+    {
+      "type": "color",
+      "id": "headline_color",
+      "label": "Überschriften-Farbe",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "headline_font_size",
+      "label": "Überschriften-Größe",
+      "min": 14,
+      "max": 24,
+      "step": 1,
+      "default": 16,
+      "unit": "px"
+    }
+  ]
+}
+{% endschema %}

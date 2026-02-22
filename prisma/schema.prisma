@@ -1,0 +1,137 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Session {
+  id          String    @id
+  shop        String
+  state       String
+  isOnline    Boolean   @default(false)
+  scope       String?
+  expires     DateTime?
+  accessToken String
+  userId      BigInt?
+}
+
+model ProductConfigurationOptions {
+  id                      Int                     @id @default(autoincrement())
+  title                   String
+  shop                    String
+  priceFormula            String                  @default("")
+  priceMode               String                  @default("price-formula")
+  activateSurcharges      Boolean                 @default(false)
+  formulaModeSurcharges   Boolean                 @default(true)
+  useVariantNameInFormula Boolean                 @default(true)
+  useUnifiedSku           Boolean                 @default(false)
+  unifiedSku              String                  @default("")
+  minimumPrice            Float                   @default(0.00)
+  useMinimumPrice         Boolean                 @default(false)
+  roundingEnabled         Boolean                 @default(false)
+  roundingPrecision       String                  @default("1")
+  basePrice               Float                   @default(0.00)
+  redirectToDifferentPage Boolean                 @default(false)
+  redirectLink            String                  @default("")
+  optionOrder             String                  @default("[]")
+  templateSuffix          String?
+  ConfigurableProduct     ConfigurableProduct[]
+  options                 Option[]                @relation("ProductConfigurationOptions_Option")
+  virtualVariants         VirtualProductVariant[]
+  rules                   OptionRule[]
+}
+
+model ConfigurableProduct {
+  id                          Int                         @id @default(autoincrement())
+  shop                        String
+  productId                   String                      @unique
+  productHandle               String
+  productVariantId            String
+  createdAt                   DateTime                    @default(now())
+  ProductConfigurationOptions ProductConfigurationOptions @relation(fields: [optionsId], references: [id])
+  optionsId                   Int
+}
+
+model AppSettings {
+  id                   Int     @id @default(autoincrement())
+  shop                 String  @unique
+  inputBackgroundColor String  @default("#ffffff")
+  inputTextColor       String  @default("#000000")
+  headlineTextColor    String  @default("#000000")
+  inputBorderRadius    String  @default("5px")
+  buttonColor          String  @default("#000000")
+  buttonTextColor      String  @default("#ffffff")
+  buttonBorderRadius   String  @default("5px")
+  buttonPadding        String  @default("10px")
+  isButtonFullWidth    Boolean @default(false)
+}
+
+model Option {
+  id                     Int                           @id @default(autoincrement())
+  shop                   String
+  name                   String
+  type                   String
+  required               Boolean                       @default(false)
+  description            String                        @db.Text
+  createdAt              DateTime                      @default(now())
+  isMultiselect          Boolean                       @default(false)
+  isPreselected          Boolean                       @default(false)
+  hasAdditionalPrice     Boolean                       @default(false)
+  additionalPrice        Float                         @default(0)
+  checkBoxLabel          String                        @default("")
+  maxLength              Int                           @default(0)
+  placeholder            String                        @default("") @db.VarChar(1000)
+  min                    Float?
+  max                    Float?
+  default                Float?
+  unit                   String                        @default("")
+  allowedFileTypes       String                        @default("")
+  values                 String                        @db.Text
+  displayMode            String                        @default("")
+  allowAllDates          Boolean                       @default(true)
+  minDate                String                        @default("")
+  maxDate                String                        @default("")
+  productBundleVariantId String                        @default("")
+  decimalPlaces          Int                           @default(-1)
+  Condition              Condition[]
+  OptionRule             OptionRule[]
+  productConfigurations  ProductConfigurationOptions[] @relation("ProductConfigurationOptions_Option")
+}
+
+model VirtualProductVariant {
+  shop                        String
+  variantHandle               String
+  ProductConfigurationOptions ProductConfigurationOptions @relation(fields: [configurationId], references: [id])
+  configurationId             Int
+  variantPrice                Float                       @default(0.00)
+  manualPrice                 Boolean                     @default(false)
+
+  @@id(name: "virtualProductVariantId", [shop, configurationId, variantHandle])
+}
+
+model OptionRule {
+  id                          Int                         @id @default(autoincrement())
+  shop                        String
+  ProductConfigurationOptions ProductConfigurationOptions @relation(fields: [configurationId], references: [id])
+  configurationId             Int
+  show                        Boolean
+  targetOption                Option                      @relation(fields: [targetOptionId], references: [id])
+  targetOptionId              Int
+  targetValueId               String?                     // Optional: specific swatch value ID to show/hide
+  priority                    Int                         @default(0) // Higher = evaluated later (wins)
+  conditions                  Condition[]                 @relation("RuleConditions")
+}
+
+model Condition {
+  id       Int        @id @default(autoincrement())
+  shop     String
+  rule     OptionRule @relation(name: "RuleConditions", fields: [ruleId], references: [id])
+  ruleId   Int
+  option   Option     @relation(fields: [optionId], references: [id])
+  optionId Int
+  operator String
+  value    String
+}

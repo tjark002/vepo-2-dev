@@ -1,0 +1,11 @@
+api_version = "2025-10"
+
+[[extensions]]
+name = "Vepo Konfigurator"
+handle = "vepo-configurator"
+uid = "7efa9ec1-a749-6aa2-4f41-4644ff84679e0362d3f0"
+type = "theme"
+
+  [[extensions.targeting]]
+  module = "./blocks/vepo-configurator.liquid"
+  target = "section"

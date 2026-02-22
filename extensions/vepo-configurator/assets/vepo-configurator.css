@@ -1,0 +1,599 @@
+/* ============================================================================
+   Vepo Product Configurator - Storefront Styles
+   CSS Prefix: .vepo_
+   ============================================================================ */
+
+.vepo_configurator {
+  width: 100%;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.vepo_configurator *,
+.vepo_configurator *::before,
+.vepo_configurator *::after {
+  box-sizing: border-box;
+}
+
+.vepo_loading {
+  padding: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 150px;
+}
+
+/* Headlines */
+.vepo_headline {
+  font-size: var(--vepo-headline-size, 16px);
+  color: var(--vepo-headline-color, #000);
+  font-weight: 600;
+  margin-bottom: 8px;
+  margin-top: 16px;
+}
+
+.vepo_headline:first-child {
+  margin-top: 0;
+}
+
+.vepo_description {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.vepo_required::after {
+  content: " *";
+  color: inherit;
+}
+
+/* Options container */
+.vepo_option {
+  margin-bottom: var(--vepo-option-spacing, 16px);
+}
+
+/* Inputs */
+.vepo_input,
+.vepo_textinput,
+.vepo_dimension_input,
+.vepo_dateinput {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: var(--vepo-input-radius, 5px);
+  background-color: var(--vepo-input-bg, #fff);
+  color: var(--vepo-input-color, #000);
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color 0.2s;
+}
+
+.vepo_input:focus,
+.vepo_textinput:focus,
+.vepo_dimension_input:focus,
+.vepo_dateinput:focus {
+  border-color: var(--vepo-accent-color, #000);
+  outline: none;
+}
+
+/* Dropdown */
+.vepo_dropdown_container {
+  width: 100%;
+}
+
+.vepo_dropdown {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: var(--vepo-input-radius, 5px);
+  background-color: var(--vepo-input-bg, #fff);
+  color: var(--vepo-input-color, #000);
+  font-size: 14px;
+  font-family: inherit;
+  appearance: auto;
+  min-width: 200px; /* Fix for iPhone */
+  cursor: pointer;
+}
+
+.vepo_dropdown:focus {
+  border-color: var(--vepo-accent-color, #000);
+  outline: none;
+}
+
+/* Swatches */
+.vepo_swatches_container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.vepo_button_swatch_container {
+  display: inline-block;
+}
+
+.vepo_button_swatch {
+  padding: 8px 16px;
+  border: 2px solid #ddd;
+  border-radius: var(--vepo-input-radius, 5px);
+  background-color: var(--vepo-input-bg, #fff);
+  color: var(--vepo-input-color, #000);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 14px;
+  font-family: inherit;
+  text-align: center;
+}
+
+.vepo_button_swatch:hover {
+  border-color: var(--vepo-accent-color, #000);
+}
+
+.vepo_button_swatch.vepo_selected {
+  border-color: var(--vepo-accent-color, #000);
+  background-color: var(--vepo-accent-color, #000);
+  color: var(--vepo-btn-text-color, #fff);
+}
+
+/* Color Swatches */
+.vepo_color_swatches_container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.vepo_color_swatch {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.vepo_color_swatch:hover {
+  transform: scale(1.1);
+}
+
+.vepo_color_swatch.vepo_selected {
+  border-color: var(--vepo-accent-color, #000);
+}
+
+/* Image Swatches */
+.vepo_image_swatch_container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.vepo_image_swatch {
+  width: var(--vepo-image-swatch-size, 150px);
+  height: var(--vepo-image-swatch-size, 150px);
+  flex-shrink: 0;
+  border: 2px solid #ddd;
+  border-radius: var(--vepo-input-radius, 5px);
+  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+}
+
+.vepo_image_swatch img {
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  object-fit: cover;
+}
+
+.vepo_image_swatch:hover {
+  border-color: var(--vepo-accent-color, #000);
+}
+
+.vepo_image_swatch.vepo_selected {
+  border-color: var(--vepo-accent-color, #000);
+}
+
+.vepo_image_swatch_label {
+  font-size: 11px;
+  text-align: center;
+  padding: 4px 2px;
+  color: var(--vepo-input-color, #000);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Checkbox */
+.vepo_checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.vepo_checkbox input {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+/* File Upload */
+.vepo_fileupload {
+  width: 100%;
+  padding: 20px;
+  border: 2px dashed #ccc;
+  border-radius: var(--vepo-input-radius, 5px);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  font-size: 14px;
+  color: #666;
+}
+
+.vepo_fileupload:hover {
+  border-color: var(--vepo-accent-color, #000);
+}
+
+.vepo_fileupload_dragover {
+  border-color: var(--vepo-accent-color, #000);
+  background-color: rgba(0, 0, 0, 0.03);
+}
+
+
+/* Surcharge display */
+.vepo_surcharge {
+  font-size: 12px;
+  color: #888;
+  margin-left: 4px;
+}
+
+.vepo_hide_surcharges .vepo_surcharge {
+  display: none;
+}
+
+/* Price preview */
+.vepo_price_preview {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--vepo-headline-color, #000);
+  margin: 16px 0 4px 0;
+}
+
+.vepo_price_subtext {
+  font-size: 12px;
+  font-weight: 400;
+  color: #888;
+  margin: 0 0 12px 0;
+}
+
+/* Add to Cart Button */
+.vepo_atc_btn {
+  width: var(--vepo-btn-full-width, auto);
+  padding: var(--vepo-btn-padding, 12px) calc(var(--vepo-btn-padding, 12px) * 2);
+  background-color: var(--vepo-btn-color, #000);
+  color: var(--vepo-btn-text-color, #fff);
+  border: none;
+  border-radius: var(--vepo-btn-radius, 5px);
+  font-size: var(--vepo-btn-font-size, 16px);
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  font-family: inherit;
+  text-align: center;
+  display: inline-block;
+}
+
+.vepo_atc_btn:hover {
+  opacity: 0.85;
+}
+
+.vepo_atc_btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.vepo_atc_btn.vepo_full_width {
+  width: 100%;
+}
+
+/* Quantity - Base */
+.vepo_quantity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.vepo_quantity label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.vepo_quantity input[type="number"] {
+  width: 60px;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: var(--vepo-input-radius, 5px);
+  text-align: center;
+  font-size: 14px;
+  -moz-appearance: textfield;
+}
+
+.vepo_quantity input[type="number"]::-webkit-outer-spin-button,
+.vepo_quantity input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Quantity - Plus/Minus */
+.vepo_qty_controls {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  border: 1px solid #ccc;
+  border-radius: var(--vepo-input-radius, 5px);
+  overflow: hidden;
+}
+
+.vepo_qty_controls input[type="number"] {
+  width: 50px;
+  padding: 8px 4px;
+  border: none;
+  border-left: 1px solid #ccc;
+  border-right: 1px solid #ccc;
+  border-radius: 0;
+  text-align: center;
+  font-size: 14px;
+}
+
+.vepo_qty_btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: none;
+  background: var(--vepo-input-bg, #fff);
+  color: var(--vepo-input-color, #000);
+  font-size: 18px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  padding: 0;
+  line-height: 1;
+}
+
+.vepo_qty_btn:hover {
+  background-color: #f0f0f0;
+}
+
+/* Quantity - Stepper */
+.vepo_qty_stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  background: var(--vepo-input-bg, #fff);
+  border: 1px solid #ccc;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.vepo_qty_stepper_btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  color: var(--vepo-input-color, #000);
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  padding: 0;
+  line-height: 1;
+}
+
+.vepo_qty_stepper_btn:hover {
+  background-color: #f0f0f0;
+}
+
+.vepo_qty_stepper_value {
+  min-width: 32px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--vepo-input-color, #000);
+  user-select: none;
+}
+
+/* Error state */
+.vepo_error {
+  border-color: #d32f2f !important;
+}
+
+.vepo_error_text {
+  color: #d32f2f;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+/* Hidden */
+.vepo_hidden {
+  display: none !important;
+}
+
+/* Unit suffix */
+.vepo_unit_suffix {
+  font-size: 14px;
+  color: #666;
+  margin-left: 4px;
+}
+
+/* Dimension with unit wrapper */
+.vepo_dimension_wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vepo_dimension_wrapper .vepo_dimension_input {
+  flex: 1;
+}
+
+/* Surcharge in headline */
+.vepo_headline .vepo_surcharge {
+  margin-left: 8px;
+  font-weight: 500;
+  color: var(--vepo-accent-color, #000);
+}
+
+/* ============================================================================
+   Input Styles
+   ============================================================================ */
+
+/* Modern style (shadow) */
+.vepo_input_style--modern .vepo_input,
+.vepo_input_style--modern .vepo_textinput,
+.vepo_input_style--modern .vepo_dimension_input,
+.vepo_input_style--modern .vepo_dateinput,
+.vepo_input_style--modern .vepo_dropdown {
+  border: 1px solid transparent;
+  background-color: #fff;
+  border-radius: var(--vepo-input-radius, 5px);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+
+.vepo_input_style--modern .vepo_input:focus,
+.vepo_input_style--modern .vepo_textinput:focus,
+.vepo_input_style--modern .vepo_dimension_input:focus,
+.vepo_input_style--modern .vepo_dateinput:focus {
+  border-color: var(--vepo-accent-color, #000);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.vepo_input_style--modern .vepo_button_swatch {
+  border: 1px solid transparent;
+  background-color: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+
+.vepo_input_style--modern .vepo_button_swatch:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.vepo_input_style--modern .vepo_button_swatch.vepo_selected {
+  border-color: var(--vepo-accent-color, #000);
+  background-color: var(--vepo-accent-color, #000);
+  color: var(--vepo-btn-text-color, #fff);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.vepo_input_style--modern .vepo_image_swatch {
+  border: 1px solid transparent;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+
+.vepo_input_style--modern .vepo_image_swatch:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.vepo_input_style--modern .vepo_image_swatch.vepo_selected {
+  border-color: var(--vepo-accent-color, #000);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.vepo_input_style--modern .vepo_fileupload {
+  border: 1px dashed transparent;
+  background-color: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+.vepo_input_style--modern .vepo_fileupload:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Filled style */
+.vepo_input_style--filled .vepo_input,
+.vepo_input_style--filled .vepo_textinput,
+.vepo_input_style--filled .vepo_dimension_input,
+.vepo_input_style--filled .vepo_dateinput,
+.vepo_input_style--filled .vepo_dropdown {
+  border: 2px solid transparent;
+  background-color: #f5f5f5;
+  border-radius: var(--vepo-input-radius, 5px);
+}
+
+.vepo_input_style--filled .vepo_input:focus,
+.vepo_input_style--filled .vepo_textinput:focus,
+.vepo_input_style--filled .vepo_dimension_input:focus,
+.vepo_input_style--filled .vepo_dateinput:focus {
+  border-color: var(--vepo-accent-color, #000);
+  background-color: #fff;
+}
+
+.vepo_input_style--filled .vepo_button_swatch {
+  border: 2px solid transparent;
+  background-color: #f5f5f5;
+}
+
+.vepo_input_style--filled .vepo_button_swatch:hover {
+  background-color: #ebebeb;
+}
+
+.vepo_input_style--filled .vepo_button_swatch.vepo_selected {
+  border-color: var(--vepo-accent-color, #000);
+  background-color: var(--vepo-accent-color, #000);
+  color: var(--vepo-btn-text-color, #fff);
+}
+
+.vepo_input_style--filled .vepo_image_swatch {
+  border: 2px solid transparent;
+  background-color: #f5f5f5;
+}
+
+.vepo_input_style--filled .vepo_image_swatch.vepo_selected {
+  border-color: var(--vepo-accent-color, #000);
+}
+
+.vepo_input_style--filled .vepo_fileupload {
+  border: 2px dashed transparent;
+  background-color: #f5f5f5;
+}
+
+.vepo_input_style--filled .vepo_fileupload:hover {
+  background-color: #ebebeb;
+}
+
+/* Dimension clamped feedback */
+.vepo_dimension_input.vepo_dimension_clamped {
+  animation: vepo-clamp-flash 0.3s ease-out;
+}
+
+/* Date clamped feedback */
+.vepo_dateinput.vepo_date_clamped {
+  animation: vepo-clamp-flash 0.3s ease-out;
+}
+
+@keyframes vepo-clamp-flash {
+  0% {
+    background-color: #fff3cd;
+    border-color: #ffc107;
+  }
+  100% {
+    background-color: var(--vepo-input-bg, #fff);
+    border-color: inherit;
+  }
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .vepo_dropdown {
+    min-width: 100%; /* Fix iPhone narrow dropdown */
+  }
+}
