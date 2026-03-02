@@ -1,24 +1,24 @@
-# Vepo Product Configurator
+# VEPO Product Configurator
 
-client_id = "e519f8388ddc2ce2e11620810946c9df"
-name = "VEPO 2 Dev"
-application_url = "https://shopify.dev/apps/default-app-home"
+client_id = "6494508982ab3171b34dff765fa749ce"
+name = "VEPO Product Options"
+application_url = "https://vepo-2-live.fly.dev"
 embedded = true
 
 [build]
-automatically_update_urls_on_dev = true
+automatically_update_urls_on_dev = false
 
 [access_scopes]
 scopes = "read_products,write_products,read_themes,write_themes,read_files,write_files,write_cart_transforms,read_publications,write_publications,read_inventory,write_inventory"
 
 [auth]
-redirect_urls = [ "https://shopify.dev/apps/default-app-home/api/auth" ]
+redirect_urls = [ "https://vepo-2-live.fly.dev/api/auth/callback" ]
 
 [webhooks]
-api_version = "2025-10"
+api_version = "2025-01"
 
 [app_proxy]
-url = "https://shopify.dev/vepoapi"
+url = "https://vepo-2-live.fly.dev/vepoapi"
 subpath = "vepo"
 prefix = "apps"
 

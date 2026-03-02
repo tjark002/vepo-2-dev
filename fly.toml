@@ -1,4 +1,4 @@
-app = 'vepo-product-configurator'
+app = 'vepo-2-live'
 primary_region = 'fra'
 
 [build]
