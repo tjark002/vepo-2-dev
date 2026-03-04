@@ -191,7 +191,8 @@
   // ============================================================================
 
   function vepoHideThemeVariantSelectors() {
-    const selectors = [
+    // Hide variant selectors
+    const variantSelectors = [
       'variant-radios',
       'variant-selects',
       '.product-form__input',
@@ -200,7 +201,31 @@
       '.product__variants',
     ];
 
-    for (const sel of selectors) {
+    for (const sel of variantSelectors) {
+      const elements = document.querySelectorAll(sel);
+      elements.forEach((el) => {
+        if (el && !el.closest("#vepo-configurator-block")) {
+          el.style.display = "none";
+        }
+      });
+    }
+
+    // Hide original product price display (common theme selectors)
+    const priceSelectors = [
+      '.price',
+      '.product__price',
+      '.product-price',
+      '.product-single__price',
+      '.price__container',
+      '.price-container',
+      '[data-product-price]',
+      '.product-info__price',
+      '.product__info-price',
+      '.product-form__info-price',
+      'price-per-item',
+    ];
+
+    for (const sel of priceSelectors) {
       const elements = document.querySelectorAll(sel);
       elements.forEach((el) => {
         if (el && !el.closest("#vepo-configurator-block")) {
@@ -1145,7 +1170,11 @@
       body: JSON.stringify(formData),
     });
 
-    if (!response.ok) throw new Error("Failed to add to cart");
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error("[Vepo] Cart add failed:", response.status, errorData);
+      throw new Error(`Failed to add to cart: ${errorData.description || response.status}`);
+    }
 
     vepoHandlePostCart(config);
   }

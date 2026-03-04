@@ -820,10 +820,11 @@ function vepoGenerateProductTitle(productTitle, configString, priceFormula, pric
 // Bulk Variant Creation
 // ============================================================================
 
-export async function vepoCreateBulkVariants(configurableProducts, graphql, useUnifiedSku = false, unifiedSku = null) {
+export async function vepoCreateBulkVariants(configurableProducts, graphql, useUnifiedSku = false, unifiedSku = null, minimumPrice = 0) {
+  console.log("[Vepo] vepoCreateBulkVariants called with minimumPrice:", minimumPrice, "products:", configurableProducts.length);
   try {
     for (const cp of configurableProducts) {
-      await vepoCreateVariantsForProduct(cp.productId, graphql, useUnifiedSku, unifiedSku);
+      await vepoCreateVariantsForProduct(cp.productId, graphql, useUnifiedSku, unifiedSku, minimumPrice);
     }
     return true;
   } catch (error) {
@@ -832,17 +833,49 @@ export async function vepoCreateBulkVariants(configurableProducts, graphql, useU
   }
 }
 
-async function vepoCreateVariantsForProduct(productId, graphql, useUnifiedSku = false, unifiedSku = null) {
+async function vepoCreateVariantsForProduct(productId, graphql, useUnifiedSku = false, unifiedSku = null, minimumPrice = 0) {
   const productTitle = await vepoGetProductTitle(productId, graphql);
   const productVariants = await vepoGetProductVariants(productId, graphql);
-  const variantsToCreate = 100 - productVariants.length;
+  
+  // Use minimum price as base, add small increments for unique prices
+  const basePrice = parseFloat(minimumPrice) || 0;
 
+  // First, update existing variants to use the minimum price
+  console.log("[Vepo] Updating", productVariants.length, "existing variants with basePrice:", basePrice);
+  if (productVariants.length > 0) {
+    const updateVariants = productVariants.map((v, idx) => ({
+      id: v.node.id,
+      price: (basePrice + idx * 0.01).toFixed(2),
+    }));
+
+    console.log("[Vepo] Updating variant prices to:", updateVariants.slice(0, 3).map(v => v.price), "IDs:", updateVariants.slice(0, 3).map(v => v.id));
+    try {
+      const updateResponse = await graphql(
+        `
+          mutation vepoUpdateVariantPrices($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
+            productVariantsBulkUpdate(productId: $productId, variants: $variants) {
+              productVariants { id }
+              userErrors { field, message }
+            }
+          }
+        `,
+        { variables: { productId, variants: updateVariants } }
+      );
+      const updateData = await updateResponse.json();
+      console.log("[Vepo] Update result:", JSON.stringify(updateData.data?.productVariantsBulkUpdate?.userErrors));
+    } catch (e) {
+      console.error("[Vepo] Error updating existing variant prices:", e);
+    }
+  }
+
+  const variantsToCreate = 100 - productVariants.length;
   if (variantsToCreate <= 0) return;
 
   const variantsInput = [];
   for (let i = 0; i < variantsToCreate; i++) {
+    const priceIndex = productVariants.length + i;
     const input = {
-      price: (100 + i).toString(),
+      price: (basePrice + priceIndex * 0.01).toFixed(2),
       inventoryPolicy: "CONTINUE",
       inventoryItem: {
         tracked: false,

@@ -8,14 +8,21 @@ datasource db {
 }
 
 model Session {
-  id          String    @id
-  shop        String
-  state       String
-  isOnline    Boolean   @default(false)
-  scope       String?
-  expires     DateTime?
-  accessToken String
-  userId      BigInt?
+  id            String    @id
+  shop          String
+  state         String
+  isOnline      Boolean   @default(false)
+  scope         String?
+  expires       DateTime?
+  accessToken   String
+  userId        BigInt?
+  firstName     String?
+  lastName      String?
+  email         String?
+  accountOwner  Boolean   @default(false)
+  locale        String?
+  collaborator  Boolean   @default(false)
+  emailVerified Boolean   @default(false)
 }
 
 model ProductConfigurationOptions {
@@ -84,9 +91,9 @@ model Option {
   checkBoxLabel          String                        @default("")
   maxLength              Int                           @default(0)
   placeholder            String                        @default("") @db.VarChar(1000)
-  min                    Float?
-  max                    Float?
-  default                Float?
+  min                    Float                         @default(0)
+  max                    Float                         @default(0)
+  default                Float                         @default(0)
   unit                   String                        @default("")
   allowedFileTypes       String                        @default("")
   values                 String                        @db.Text
