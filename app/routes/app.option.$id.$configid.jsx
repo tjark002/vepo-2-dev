@@ -47,13 +47,13 @@ const formatPrice = (value) => {
   return num.toFixed(2);
 };
 
-// Parse float or return null for empty/invalid values
+// Parse float or return 0 for empty/invalid values (DB has NOT NULL constraint with default 0)
 const parseFloatOrNull = (value) => {
   if (value === null || value === undefined || value === "" || value === "null") {
-    return null;
+    return 0;
   }
   const parsed = parseFloat(value);
-  return isNaN(parsed) ? null : parsed;
+  return isNaN(parsed) ? 0 : parsed;
 };
 
 const OPTION_TYPE_ICONS = {
@@ -387,9 +387,9 @@ export default function OptionEditor() {
     checkBoxLabel: option?.checkBoxLabel || "",
     maxLength: option?.maxLength || 0,
     placeholder: option?.placeholder || "",
-    min: option?.min ?? null,
-    max: option?.max ?? null,
-    default: option?.default ?? null,
+    min: option?.min ?? 0,
+    max: option?.max ?? 0,
+    default: option?.default ?? 0,
     unit: option?.unit || "cm",
     allowedFileTypes: option?.allowedFileTypes || "",
     values: option?.values || [],
@@ -455,7 +455,17 @@ export default function OptionEditor() {
     setFormState((prev) => ({ ...prev, ...updatedOption }));
   }, []);
 
+  const handleDiscard = useCallback(() => {
+    navigate(`/app/configurator/${configId}`);
+  }, [navigate, configId]);
+
+  // Track the last processed actionData reference and the state that was saved
+  const lastProcessedActionRef = useRef(null);
+  const savedStateRef = useRef(null);
+
+  // Capture state when save is initiated so we track the correct "clean" state
   const handleSave = useCallback(() => {
+    savedStateRef.current = JSON.stringify(formState);
     const formData = new FormData();
     Object.entries(formState).forEach(([key, value]) => {
       if (key === "values") {
@@ -469,21 +479,18 @@ export default function OptionEditor() {
     submit(formData, { method: "post" });
   }, [formState, submit]);
 
-  const handleDiscard = useCallback(() => {
-    navigate(`/app/configurator/${configId}`);
-  }, [navigate, configId]);
-
-  // Track the last processed actionData reference
-  const lastProcessedActionRef = useRef(null);
-
   useEffect(() => {
     if (actionData?.success && actionData !== lastProcessedActionRef.current) {
       lastProcessedActionRef.current = actionData;
-      initialStateRef.current = JSON.stringify(formState);
+      // Use the captured state from when save was initiated, not current formState
+      if (savedStateRef.current) {
+        initialStateRef.current = savedStateRef.current;
+        savedStateRef.current = null;
+      }
       setSaveVersion((v) => v + 1); // Force isDirty re-computation
       shopify.toast.show("Option gespeichert");
     }
-  }, [actionData, formState]);
+  }, [actionData]);
 
   const OptionIcon = OPTION_TYPE_ICONS[formState.type] || ListBulletedIcon;
 

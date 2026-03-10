@@ -1,4 +1,4 @@
-# VEPO Product Configurator
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
 client_id = "6494508982ab3171b34dff765fa749ce"
 name = "Visionz Easy Product Options 2"
@@ -6,16 +6,19 @@ application_url = "https://vepo-2-live.fly.dev"
 embedded = true
 
 [build]
-automatically_update_urls_on_dev = false
-
-[access_scopes]
-scopes = "read_products,write_products,read_themes,write_themes,read_files,write_files,write_cart_transforms,read_publications,write_publications,read_inventory,write_inventory"
-
-[auth]
-redirect_urls = [ "https://vepo-2-live.fly.dev/api/auth/callback" ]
+automatically_update_urls_on_dev = true
 
 [webhooks]
 api_version = "2025-01"
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "read_files,read_inventory,read_products,read_publications,read_themes,write_cart_transforms,write_files,write_inventory,write_products,write_publications,write_themes"
+optional_scopes = [ ]
+use_legacy_install_flow = false
+
+[auth]
+redirect_urls = [ "https://vepo-2-live.fly.dev/api/auth/callback" ]
 
 [app_proxy]
 url = "https://vepo-2-live.fly.dev/vepoapi"

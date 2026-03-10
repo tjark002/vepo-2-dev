@@ -36,6 +36,8 @@ import {
   ListBulletedIcon,
   SelectIcon,
   DeleteIcon,
+  DuplicateIcon,
+  ExportIcon,
   ChevronDownIcon,
   ChevronUpIcon,
 } from "@shopify/polaris-icons";
@@ -58,13 +60,13 @@ import ProductList from "../components/ProductList";
 import VirtualVariantsTable from "../components/VirtualVariantsTable";
 import RulesEditor from "../components/RulesEditor";
 
-// Parse float or return null for empty/invalid values
+// Parse float or return 0 for empty/invalid values (DB has NOT NULL constraint with default 0)
 const parseFloatOrNull = (value) => {
   if (value === null || value === undefined || value === "" || value === "null") {
-    return null;
+    return 0;
   }
   const parsed = parseFloat(value);
-  return isNaN(parsed) ? null : parsed;
+  return isNaN(parsed) ? 0 : parsed;
 };
 
 const OPTION_TYPE_ICONS = {
@@ -246,7 +248,17 @@ export const loader = async ({ request, params }) => {
   });
   const usedProductIds = allConfigurableProducts.map((cp) => cp.productId);
 
-  return json({ configuration, shop: session.shop, templates, usedProductIds });
+  // Load all other configurations for "copy option to" feature
+  const otherConfigurators = await db.productConfigurationOptions.findMany({
+    where: {
+      shop: session.shop,
+      id: { not: parseInt(id) },
+    },
+    select: { id: true, title: true, priceMode: true },
+    orderBy: { title: "asc" },
+  });
+
+  return json({ configuration, shop: session.shop, templates, usedProductIds, otherConfigurators });
 };
 
 // ============================================================================
@@ -264,6 +276,72 @@ export const action = async ({ request, params }) => {
     const configTitle = formData.get("configTitle") || "";
     await vepoDeleteConfiguration(configId, configTitle, admin.graphql);
     return redirect("/app");
+  }
+
+  // Copy option to another configurator
+  if (actionType === "copyOptionTo") {
+    const optionData = JSON.parse(formData.get("optionData") || "{}");
+    const targetConfigId = parseInt(formData.get("targetConfigId"));
+
+    if (!optionData || !targetConfigId) {
+      return json({ error: "Missing option data or target config" }, { status: 400 });
+    }
+
+    // Get target config's option order
+    const targetConfig = await db.productConfigurationOptions.findUnique({
+      where: { id: targetConfigId },
+      select: { optionOrder: true },
+    });
+
+    if (!targetConfig) {
+      return json({ error: "Target configuration not found" }, { status: 404 });
+    }
+
+    // Create the option in the target config
+    const newOption = await db.option.create({
+      data: {
+        shop: session.shop,
+        name: optionData.name || "Kopierte Option",
+        type: optionData.type,
+        required: optionData.required || false,
+        description: optionData.description || "",
+        isMultiselect: optionData.isMultiselect || false,
+        isPreselected: optionData.isPreselected || false,
+        hasAdditionalPrice: optionData.hasAdditionalPrice || false,
+        additionalPrice: parseFloat(optionData.additionalPrice) || 0,
+        checkBoxLabel: optionData.checkBoxLabel || "",
+        maxLength: parseInt(optionData.maxLength) || 0,
+        placeholder: optionData.placeholder || "",
+        min: parseFloatOrNull(optionData.min),
+        max: parseFloatOrNull(optionData.max),
+        default: parseFloatOrNull(optionData.default),
+        unit: optionData.unit || "",
+        allowedFileTypes: optionData.allowedFileTypes || "",
+        values: typeof optionData.values === "string" ? optionData.values : JSON.stringify(optionData.values || []),
+        displayMode: optionData.displayMode || "",
+        allowAllDates: optionData.allowAllDates !== false,
+        minDate: optionData.minDate || "",
+        maxDate: optionData.maxDate || "",
+        decimalPlaces: parseInt(optionData.decimalPlaces) ?? -1,
+        productConfigurations: { connect: { id: targetConfigId } },
+      },
+    });
+
+    // Update target config's option order
+    let optionOrder = [];
+    try {
+      optionOrder = JSON.parse(targetConfig.optionOrder || "[]");
+    } catch {
+      optionOrder = [];
+    }
+    optionOrder.push(newOption.id);
+
+    await db.productConfigurationOptions.update({
+      where: { id: targetConfigId },
+      data: { optionOrder: JSON.stringify(optionOrder) },
+    });
+
+    return json({ success: true, action: "copyOptionTo", newOptionId: newOption.id });
   }
 
   // Save action – configuration always exists (created via setup page)
@@ -568,7 +646,7 @@ export const action = async ({ request, params }) => {
   });
 
   if (priceMode === "price-formula") {
-    await vepoCreateBulkVariants(finalProducts, admin.graphql, data.useUnifiedSku, data.unifiedSku);
+    await vepoCreateBulkVariants(finalProducts, admin.graphql, data.useUnifiedSku, data.unifiedSku, data.minimumPrice);
   } else if (priceMode === "variant-price") {
     await vepoCreateBulkVirtualVariants(finalProducts, virtualVariants, admin.graphql);
   }
@@ -600,7 +678,7 @@ export const action = async ({ request, params }) => {
 // ============================================================================
 
 export default function ConfiguratorEditor() {
-  const { configuration, shop, templates, usedProductIds } = useLoaderData();
+  const { configuration, shop, templates, usedProductIds, otherConfigurators } = useLoaderData();
   const actionData = useActionData();
   const navigate = useNavigate();
   const submit = useSubmit();
@@ -649,6 +727,9 @@ export default function ConfiguratorEditor() {
   const [pendingOptionNavigation, setPendingOptionNavigation] = useState(null);
   const [isSavingAndNavigating, setIsSavingAndNavigating] = useState(false);
   const navigateAfterSaveRef = useRef(null);
+  const [copyToModalOpen, setCopyToModalOpen] = useState(false);
+  const [copyingOption, setCopyingOption] = useState(null);
+  const [selectedTargetConfig, setSelectedTargetConfig] = useState("");
 
   // Dirty state tracking – all fields that can change (priceMode excluded: immutable after creation)
   const initialStateRef = useRef(normalizeForComparison({
@@ -750,9 +831,28 @@ export default function ConfiguratorEditor() {
   ]);
 
   // Handlers
+  // Ref to store the state snapshot when save is initiated
+  const savedStateSnapshotRef = useRef(null);
+
   const handleSave = useCallback(() => {
+    // Capture the current state at the moment of save
+    savedStateSnapshotRef.current = {
+      title, priceFormula, options, optionOrder,
+      configurableProducts, virtualVariants, rules,
+      activateSurcharges, formulaModeSurcharges, useVariantNameInFormula,
+      useUnifiedSku, unifiedSku, minimumPrice, useMinimumPrice,
+      roundingEnabled, roundingPrecision,
+      basePrice, redirectToDifferentPage, redirectLink, templateSuffix,
+    };
     submit(buildFormData(), { method: "post" });
-  }, [submit, buildFormData]);
+  }, [
+    submit, buildFormData, title, priceFormula, options, optionOrder,
+    configurableProducts, virtualVariants, rules,
+    activateSurcharges, formulaModeSurcharges, useVariantNameInFormula,
+    useUnifiedSku, unifiedSku, minimumPrice, useMinimumPrice,
+    roundingEnabled, roundingPrecision,
+    basePrice, redirectToDifferentPage, redirectLink, templateSuffix,
+  ]);
 
   // Navigate to option editor
   const handleOptionClick = useCallback(
@@ -931,6 +1031,64 @@ export default function ConfiguratorEditor() {
     []
   );
 
+  const handleDuplicateOption = useCallback(
+    (optionId) => {
+      const originalOption = options.find((o) => (o.id || o.tempId) === optionId);
+      if (!originalOption) return;
+
+      const newTempId = "opt_" + Date.now();
+      const duplicatedOption = {
+        ...originalOption,
+        id: undefined,
+        tempId: newTempId,
+        name: originalOption.name + " (Kopie)",
+      };
+
+      const originalIndex = optionOrder.indexOf(optionId);
+      
+      setOptions((prev) => [...prev, duplicatedOption]);
+      setOptionOrder((prev) => {
+        const newOrder = [...prev];
+        if (originalIndex >= 0) {
+          newOrder.splice(originalIndex + 1, 0, newTempId);
+        } else {
+          newOrder.push(newTempId);
+        }
+        return newOrder;
+      });
+
+      shopify.toast.show(`Option "${originalOption.name}" dupliziert`);
+    },
+    [options, optionOrder, shopify]
+  );
+
+  const handleOpenCopyToModal = useCallback(
+    (optionId) => {
+      const option = options.find((o) => (o.id || o.tempId) === optionId);
+      if (!option) return;
+      setCopyingOption(option);
+      setSelectedTargetConfig(otherConfigurators[0]?.id?.toString() || "");
+      setCopyToModalOpen(true);
+    },
+    [options, otherConfigurators]
+  );
+
+  const handleCopyOptionToConfig = useCallback(() => {
+    if (!copyingOption || !selectedTargetConfig) return;
+
+    const formData = new FormData();
+    formData.append("actionType", "copyOptionTo");
+    formData.append("optionData", JSON.stringify(copyingOption));
+    formData.append("targetConfigId", selectedTargetConfig);
+    submit(formData, { method: "post" });
+
+    setCopyToModalOpen(false);
+    setCopyingOption(null);
+    
+    const targetConfig = otherConfigurators.find((c) => c.id.toString() === selectedTargetConfig);
+    shopify.toast.show(`Option in "${targetConfig?.title}" kopiert`);
+  }, [copyingOption, selectedTargetConfig, submit, otherConfigurators, shopify]);
+
   // Move option in order (drag simulation via buttons)
   const moveOption = useCallback(
     (fromIndex, direction) => {
@@ -965,7 +1123,8 @@ export default function ConfiguratorEditor() {
       lastProcessedActionRef.current = actionData;
       
       const idMap = actionData.optionIdMap || {};
-      const state = currentStateRef.current;
+      // Use the saved snapshot from when save was initiated, not current state
+      const state = savedStateSnapshotRef.current || currentStateRef.current;
       let updatedOptions = state.options;
       let updatedOptionOrder = state.optionOrder;
 
@@ -989,12 +1148,15 @@ export default function ConfiguratorEditor() {
         setOptionOrder(updatedOptionOrder);
       }
 
-      // Reset dirty state with current values (including any ID updates)
+      // Reset dirty state with the saved snapshot values (including any ID updates)
       initialStateRef.current = normalizeForComparison({
         ...state,
         options: updatedOptions,
         optionOrder: updatedOptionOrder,
       });
+      
+      // Clear the saved snapshot
+      savedStateSnapshotRef.current = null;
       
       // Increment saveVersion to force isDirty re-computation
       setSaveVersion((v) => v + 1);
@@ -1245,16 +1407,38 @@ export default function ConfiguratorEditor() {
                               </Text>
                             </BlockStack>
                           </InlineStack>
-                          <Button
-                            icon={DeleteIcon}
-                            variant="plain"
-                            tone="critical"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleRemoveOption(optionId);
-                            }}
-                            accessibilityLabel="Option entfernen"
-                          />
+                          <InlineStack gap="100">
+                            <Button
+                              icon={DuplicateIcon}
+                              variant="plain"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDuplicateOption(optionId);
+                              }}
+                              accessibilityLabel="Option duplizieren"
+                            />
+                            {otherConfigurators.length > 0 && (
+                              <Button
+                                icon={ExportIcon}
+                                variant="plain"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenCopyToModal(optionId);
+                                }}
+                                accessibilityLabel="Option in anderen Konfigurator kopieren"
+                              />
+                            )}
+                            <Button
+                              icon={DeleteIcon}
+                              variant="plain"
+                              tone="critical"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRemoveOption(optionId);
+                              }}
+                              accessibilityLabel="Option entfernen"
+                            />
+                          </InlineStack>
                         </InlineStack>
                       </div>
                     );
@@ -1453,6 +1637,46 @@ export default function ConfiguratorEditor() {
           <Text as="p">
             Du hast ungespeicherte Änderungen im Konfigurator. Wenn du zur Option navigierst, ohne zu speichern, gehen diese verloren.
           </Text>
+        </Modal.Section>
+      </Modal>
+
+      <Modal
+        open={copyToModalOpen}
+        onClose={() => {
+          setCopyToModalOpen(false);
+          setCopyingOption(null);
+        }}
+        title="Option in anderen Konfigurator kopieren"
+        primaryAction={{
+          content: "Kopieren",
+          onAction: handleCopyOptionToConfig,
+          disabled: !selectedTargetConfig,
+        }}
+        secondaryActions={[
+          {
+            content: "Abbrechen",
+            onAction: () => {
+              setCopyToModalOpen(false);
+              setCopyingOption(null);
+            },
+          },
+        ]}
+      >
+        <Modal.Section>
+          <BlockStack gap="400">
+            <Text as="p">
+              Option <Text as="span" fontWeight="bold">„{copyingOption?.name || "Unbenannt"}"</Text> wird in den ausgewählten Konfigurator kopiert.
+            </Text>
+            <Select
+              label="Ziel-Konfigurator"
+              options={otherConfigurators.map((c) => ({
+                label: c.title,
+                value: c.id.toString(),
+              }))}
+              value={selectedTargetConfig}
+              onChange={setSelectedTargetConfig}
+            />
+          </BlockStack>
         </Modal.Section>
       </Modal>
     </Page>
