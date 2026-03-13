@@ -3,8 +3,10 @@ import {
   TextField,
   Text,
 } from "@shopify/polaris";
+import { useTranslation } from "../../utils/i18n";
 
 export default function CheckboxOption({ option, onChange }) {
+  const { t } = useTranslation();
   const update = (field, value) => {
     onChange({ ...option, [field]: value });
   };
@@ -12,11 +14,11 @@ export default function CheckboxOption({ option, onChange }) {
   return (
     <BlockStack gap="400">
       <TextField
-        label="Checkbox-Label"
+        label={t("options.checkbox.label")}
         value={option.checkBoxLabel || ""}
         onChange={(val) => update("checkBoxLabel", val)}
         autoComplete="off"
-        helpText="Text, der neben der Checkbox angezeigt wird"
+        helpText={t("options.checkbox.labelHelp")}
       />
     </BlockStack>
   );

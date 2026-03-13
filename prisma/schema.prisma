@@ -33,6 +33,7 @@ model ProductConfigurationOptions {
   priceMode               String                  @default("price-formula")
   activateSurcharges      Boolean                 @default(false)
   formulaModeSurcharges   Boolean                 @default(true)
+  surchargesInFormula     Boolean                 @default(false)
   useVariantNameInFormula Boolean                 @default(true)
   useUnifiedSku           Boolean                 @default(false)
   unifiedSku              String                  @default("")

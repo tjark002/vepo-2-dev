@@ -10,14 +10,7 @@ import {
 } from "@shopify/polaris";
 import { DeleteIcon, PlusIcon, ChevronUpIcon, ChevronDownIcon } from "@shopify/polaris-icons";
 import { useCallback, useMemo } from "react";
-
-const OPERATORS = [
-  { label: "ist gleich", value: "equals" },
-  { label: "ist nicht gleich", value: "not-equals" },
-  { label: "größer als", value: "greater-than" },
-  { label: "kleiner als", value: "less-than" },
-  { label: "enthält", value: "contains" },
-];
+import { useTranslation } from "../utils/i18n";
 
 const SWATCH_TYPES = ["variantswatch", "colorswatch", "imageswatch", "dropdown", "dimensionselect"];
 
@@ -32,8 +25,18 @@ function getOptionValues(option) {
 }
 
 export default function RulesEditor({ rules, onChange, options }) {
+  const { t } = useTranslation();
+
+  const operators = useMemo(() => [
+    { label: t("rulesEditor.equals"), value: "equals" },
+    { label: t("rulesEditor.notEquals"), value: "not-equals" },
+    { label: t("rulesEditor.greaterThan"), value: "greater-than" },
+    { label: t("rulesEditor.lessThan"), value: "less-than" },
+    { label: t("rulesEditor.contains"), value: "contains" },
+  ], [t]);
+
   const optionChoices = options.map((o) => ({
-    label: o.name || "Unbenannte Option",
+    label: o.name || t("common.unnamedOption"),
     value: String(o.id || o.tempId),
   }));
 
@@ -184,10 +187,10 @@ export default function RulesEditor({ rules, onChange, options }) {
     if (values.length === 0) return null;
     
     return values.map((v, idx) => ({
-      label: v.name || v.numericValue || `Wert ${idx + 1}`,
+      label: v.name || v.numericValue || t("rulesEditor.valueN", { index: idx + 1 }),
       value: v.name || v.numericValue || String(idx),
     }));
-  }, [optionsById]);
+  }, [optionsById, t]);
 
   const getTargetValueChoices = useCallback((optionId) => {
     const option = optionsById[optionId];
@@ -198,23 +201,23 @@ export default function RulesEditor({ rules, onChange, options }) {
     if (values.length === 0) return null;
     
     return [
-      { label: "Alle Werte", value: "" },
+      { label: t("rulesEditor.allValues"), value: "" },
       ...values.map((v, idx) => ({
-        label: v.name || v.numericValue || `Wert ${idx + 1}`,
+        label: v.name || v.numericValue || t("rulesEditor.valueN", { index: idx + 1 }),
         value: v.id || v.name || String(idx),
       })),
     ];
-  }, [optionsById]);
+  }, [optionsById, t]);
 
   if (options.length < 2) {
     return (
       <Card>
         <BlockStack gap="200">
           <Text variant="headingMd" as="h3">
-            Regeln
+            {t("rulesEditor.title")}
           </Text>
           <Banner tone="info">
-            <p>Du brauchst mindestens 2 Optionen, um Regeln zu erstellen.</p>
+            <p>{t("rulesEditor.needTwoOptions")}</p>
           </Banner>
         </BlockStack>
       </Card>
@@ -226,21 +229,20 @@ export default function RulesEditor({ rules, onChange, options }) {
       <BlockStack gap="400">
         <InlineStack align="space-between" blockAlign="center">
           <Text variant="headingMd" as="h3">
-            Regeln
+            {t("rulesEditor.title")}
           </Text>
           <Button onClick={addRule} icon={PlusIcon}>
-            Regel hinzufügen
+            {t("rulesEditor.addRule")}
           </Button>
         </InlineStack>
 
         <Text variant="bodySm" tone="subdued">
-          Regeln bestimmen, wann bestimmte Optionen oder einzelne Werte sichtbar oder versteckt sind.
-          Regeln weiter unten haben höhere Priorität bei Konflikten.
+          {t("rulesEditor.description")}
         </Text>
 
         {rules.length === 0 ? (
           <Banner tone="info">
-            <p>Keine Regeln vorhanden. Optionen werden immer angezeigt.</p>
+            <p>{t("rulesEditor.noRules")}</p>
           </Banner>
         ) : (
           <BlockStack gap="400">
@@ -259,7 +261,7 @@ export default function RulesEditor({ rules, onChange, options }) {
                             size="slim"
                             disabled={ruleIndex === 0}
                             onClick={() => moveRule(ruleIndex, -1)}
-                            accessibilityLabel="Nach oben"
+                            accessibilityLabel={t("common.moveUp")}
                           />
                           <Button
                             icon={ChevronDownIcon}
@@ -267,11 +269,11 @@ export default function RulesEditor({ rules, onChange, options }) {
                             size="slim"
                             disabled={ruleIndex === rules.length - 1}
                             onClick={() => moveRule(ruleIndex, 1)}
-                            accessibilityLabel="Nach unten"
+                            accessibilityLabel={t("common.moveDown")}
                           />
                         </InlineStack>
                         <Text variant="bodyMd" fontWeight="semibold">
-                          Regel {ruleIndex + 1}
+                          {t("rulesEditor.rule", { index: ruleIndex + 1 })}
                         </Text>
                       </InlineStack>
                       <Button
@@ -284,16 +286,16 @@ export default function RulesEditor({ rules, onChange, options }) {
 
                     <InlineStack gap="300" blockAlign="end" wrap>
                       <Select
-                        label="Aktion"
+                        label={t("rulesEditor.action")}
                         options={[
-                          { label: "Zeige", value: "true" },
-                          { label: "Verstecke", value: "false" },
+                          { label: t("rulesEditor.show"), value: "true" },
+                          { label: t("rulesEditor.hide"), value: "false" },
                         ]}
                         value={String(rule.show)}
                         onChange={(val) => updateRule(ruleIndex, "show", val === "true")}
                       />
                       <Select
-                        label="Ziel-Option"
+                        label={t("rulesEditor.targetOption")}
                         options={optionChoices}
                         value={String(rule.targetOptionId)}
                         onChange={(val) =>
@@ -302,7 +304,7 @@ export default function RulesEditor({ rules, onChange, options }) {
                       />
                       {targetValueChoices && (
                         <Select
-                          label="Ziel-Wert"
+                          label={t("rulesEditor.targetValue")}
                           options={targetValueChoices}
                           value={rule.targetValueId || ""}
                           onChange={(val) =>
@@ -313,7 +315,7 @@ export default function RulesEditor({ rules, onChange, options }) {
                     </InlineStack>
 
                     <Text variant="bodySm" fontWeight="semibold">
-                      Wenn alle Bedingungen erfüllt sind:
+                      {t("rulesEditor.whenConditionsMet")}
                     </Text>
 
                     {rule.conditions.map((condition, condIndex) => {
@@ -327,7 +329,7 @@ export default function RulesEditor({ rules, onChange, options }) {
                           wrap
                         >
                           <Select
-                            label={condIndex === 0 ? "Option" : ""}
+                            label={condIndex === 0 ? t("rulesEditor.option") : ""}
                             options={optionChoices}
                             value={String(condition.optionId)}
                             onChange={(val) =>
@@ -335,8 +337,8 @@ export default function RulesEditor({ rules, onChange, options }) {
                             }
                           />
                           <Select
-                            label={condIndex === 0 ? "Operator" : ""}
-                            options={OPERATORS}
+                            label={condIndex === 0 ? t("rulesEditor.operator") : ""}
+                            options={operators}
                             value={condition.operator}
                             onChange={(val) =>
                               updateCondition(ruleIndex, condIndex, "operator", val)
@@ -344,7 +346,7 @@ export default function RulesEditor({ rules, onChange, options }) {
                           />
                           {valueChoices ? (
                             <Select
-                              label={condIndex === 0 ? "Wert" : ""}
+                              label={condIndex === 0 ? t("common.value") : ""}
                               options={valueChoices}
                               value={condition.value}
                               onChange={(val) =>
@@ -353,7 +355,7 @@ export default function RulesEditor({ rules, onChange, options }) {
                             />
                           ) : (
                             <TextField
-                              label={condIndex === 0 ? "Wert" : ""}
+                              label={condIndex === 0 ? t("common.value") : ""}
                               value={condition.value}
                               onChange={(val) =>
                                 updateCondition(ruleIndex, condIndex, "value", val)
@@ -375,7 +377,7 @@ export default function RulesEditor({ rules, onChange, options }) {
                       size="slim"
                       onClick={() => addCondition(ruleIndex)}
                     >
-                      Bedingung hinzufügen
+                      {t("rulesEditor.addCondition")}
                     </Button>
                   </BlockStack>
                 </Card>

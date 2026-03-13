@@ -59,6 +59,7 @@ import PriceFormulaEditor from "../components/PriceFormulaEditor";
 import ProductList from "../components/ProductList";
 import VirtualVariantsTable from "../components/VirtualVariantsTable";
 import RulesEditor from "../components/RulesEditor";
+import { useTranslation } from "../utils/i18n";
 
 // Parse float or return 0 for empty/invalid values (DB has NOT NULL constraint with default 0)
 const parseFloatOrNull = (value) => {
@@ -82,18 +83,7 @@ const OPTION_TYPE_ICONS = {
   file: AttachmentIcon,
 };
 
-const OPTION_TYPE_LABELS = {
-  variantswatch: "Klassische Textkacheln",
-  dropdown: "Dropdown-Auswahl",
-  colorswatch: "Farbkacheln",
-  imageswatch: "Bildkacheln",
-  dimension: "Maße",
-  dimensionselect: "Maß-Auswahl",
-  text: "Texteingabe",
-  checkbox: "Einzelne Checkbox",
-  date: "Datum Eingabe",
-  file: "Datei",
-};
+// OPTION_TYPE_LABELS moved inside component for i18n support
 
 // Normalize data for comparison - extract only relevant fields to avoid server-side field differences
 function normalizeForComparison(data, debug = false) {
@@ -173,6 +163,7 @@ function normalizeForComparison(data, debug = false) {
     rules: (data.rules || []).map(normalizeRule),
     activateSurcharges: Boolean(data.activateSurcharges),
     formulaModeSurcharges: data.formulaModeSurcharges !== false,
+    surchargesInFormula: Boolean(data.surchargesInFormula),
     useVariantNameInFormula: data.useVariantNameInFormula !== false,
     useUnifiedSku: Boolean(data.useUnifiedSku),
     unifiedSku: data.unifiedSku || "",
@@ -361,6 +352,7 @@ export const action = async ({ request, params }) => {
     priceFormula: formData.get("priceFormula") || "",
     activateSurcharges: formData.get("activateSurcharges") === "true",
     formulaModeSurcharges: formData.get("formulaModeSurcharges") === "true",
+    surchargesInFormula: formData.get("surchargesInFormula") === "true",
     useVariantNameInFormula: formData.get("useVariantNameInFormula") === "true",
     useUnifiedSku: formData.get("useUnifiedSku") === "true",
     unifiedSku: formData.get("unifiedSku") || "",
@@ -395,6 +387,7 @@ export const action = async ({ request, params }) => {
       priceFormula: data.priceFormula,
       activateSurcharges: data.activateSurcharges,
       formulaModeSurcharges: data.formulaModeSurcharges,
+      surchargesInFormula: data.surchargesInFormula,
       useVariantNameInFormula: data.useVariantNameInFormula,
       useUnifiedSku: data.useUnifiedSku,
       unifiedSku: data.unifiedSku,
@@ -686,6 +679,20 @@ export default function ConfiguratorEditor() {
   const navigation = useNavigation();
   const isSaving = navigation.state === "submitting";
   const shopify = useAppBridge();
+  const { t } = useTranslation();
+
+  const OPTION_TYPE_LABELS = useMemo(() => ({
+    variantswatch: t("optionTypes.variantswatch"),
+    dropdown: t("optionTypes.dropdown"),
+    colorswatch: t("optionTypes.colorswatch"),
+    imageswatch: t("optionTypes.imageswatch"),
+    dimension: t("optionTypes.dimension"),
+    dimensionselect: t("optionTypes.dimensionselect"),
+    text: t("optionTypes.text"),
+    checkbox: t("optionTypes.checkbox"),
+    date: t("optionTypes.date"),
+    file: t("optionTypes.file"),
+  }), [t]);
 
   // Configuration always exists at this point (created via /app/configurator/new)
 
@@ -696,6 +703,7 @@ export default function ConfiguratorEditor() {
   const [priceFormula, setPriceFormula] = useState(configuration?.priceFormula || "");
   const [activateSurcharges, setActivateSurcharges] = useState(configuration?.activateSurcharges || false);
   const [formulaModeSurcharges, setFormulaModeSurcharges] = useState(configuration?.formulaModeSurcharges ?? true);
+  const [surchargesInFormula, setSurchargesInFormula] = useState(configuration?.surchargesInFormula || false);
   const [useVariantNameInFormula, setUseVariantNameInFormula] = useState(configuration?.useVariantNameInFormula ?? true);
   const [useUnifiedSku, setUseUnifiedSku] = useState(configuration?.useUnifiedSku || false);
   const [unifiedSku, setUnifiedSku] = useState(configuration?.unifiedSku || "");
@@ -743,6 +751,7 @@ export default function ConfiguratorEditor() {
     rules: configuration?.rules,
     activateSurcharges: configuration?.activateSurcharges,
     formulaModeSurcharges: configuration?.formulaModeSurcharges,
+    surchargesInFormula: configuration?.surchargesInFormula,
     useVariantNameInFormula: configuration?.useVariantNameInFormula,
     useUnifiedSku: configuration?.useUnifiedSku,
     unifiedSku: configuration?.unifiedSku,
@@ -763,7 +772,7 @@ export default function ConfiguratorEditor() {
     const current = normalizeForComparison({
       title, priceFormula, options, optionOrder,
       configurableProducts, virtualVariants, rules,
-      activateSurcharges, formulaModeSurcharges, useVariantNameInFormula,
+      activateSurcharges, formulaModeSurcharges, surchargesInFormula, useVariantNameInFormula,
       useUnifiedSku, unifiedSku, minimumPrice, useMinimumPrice,
       roundingEnabled, roundingPrecision,
       basePrice, redirectToDifferentPage, redirectLink, templateSuffix,
@@ -773,7 +782,7 @@ export default function ConfiguratorEditor() {
   }, [
     title, priceFormula, options, optionOrder,
     configurableProducts, virtualVariants, rules,
-    activateSurcharges, formulaModeSurcharges, useVariantNameInFormula,
+    activateSurcharges, formulaModeSurcharges, surchargesInFormula, useVariantNameInFormula,
     useUnifiedSku, unifiedSku, minimumPrice, useMinimumPrice,
     roundingEnabled, roundingPrecision,
     basePrice, redirectToDifferentPage, redirectLink, templateSuffix,
@@ -803,6 +812,7 @@ export default function ConfiguratorEditor() {
     formData.append("priceFormula", priceFormula);
     formData.append("activateSurcharges", String(activateSurcharges));
     formData.append("formulaModeSurcharges", String(formulaModeSurcharges));
+    formData.append("surchargesInFormula", String(surchargesInFormula));
     formData.append("useVariantNameInFormula", String(useVariantNameInFormula));
     formData.append("useUnifiedSku", String(useUnifiedSku));
     formData.append("unifiedSku", unifiedSku);
@@ -825,7 +835,7 @@ export default function ConfiguratorEditor() {
 
     return formData;
   }, [
-    title, priceFormula, activateSurcharges, formulaModeSurcharges,
+    title, priceFormula, activateSurcharges, formulaModeSurcharges, surchargesInFormula,
     useVariantNameInFormula, useUnifiedSku, unifiedSku, minimumPrice,
     useMinimumPrice, basePrice, redirectToDifferentPage, redirectLink,
     templateSuffix, configurableProducts, options, optionOrder, virtualVariants, rules,
@@ -840,7 +850,7 @@ export default function ConfiguratorEditor() {
     savedStateSnapshotRef.current = {
       title, priceFormula, options, optionOrder,
       configurableProducts, virtualVariants, rules,
-      activateSurcharges, formulaModeSurcharges, useVariantNameInFormula,
+      activateSurcharges, formulaModeSurcharges, surchargesInFormula, useVariantNameInFormula,
       useUnifiedSku, unifiedSku, minimumPrice, useMinimumPrice,
       roundingEnabled, roundingPrecision,
       basePrice, redirectToDifferentPage, redirectLink, templateSuffix,
@@ -849,7 +859,7 @@ export default function ConfiguratorEditor() {
   }, [
     submit, buildFormData, title, priceFormula, options, optionOrder,
     configurableProducts, virtualVariants, rules,
-    activateSurcharges, formulaModeSurcharges, useVariantNameInFormula,
+    activateSurcharges, formulaModeSurcharges, surchargesInFormula, useVariantNameInFormula,
     useUnifiedSku, unifiedSku, minimumPrice, useMinimumPrice,
     roundingEnabled, roundingPrecision,
     basePrice, redirectToDifferentPage, redirectLink, templateSuffix,
@@ -874,7 +884,7 @@ export default function ConfiguratorEditor() {
         const stateWithoutThisOption = normalizeForComparison({
           title, priceFormula, options: optionsWithoutThis, optionOrder: orderWithoutThis,
           configurableProducts, virtualVariants, rules,
-          activateSurcharges, formulaModeSurcharges, useVariantNameInFormula,
+          activateSurcharges, formulaModeSurcharges, surchargesInFormula, useVariantNameInFormula,
           useUnifiedSku, unifiedSku, minimumPrice, useMinimumPrice,
           roundingEnabled, roundingPrecision,
           basePrice, redirectToDifferentPage, redirectLink, templateSuffix,
@@ -899,7 +909,7 @@ export default function ConfiguratorEditor() {
     [
       configuration, navigate, options, optionOrder, isDirty, priceMode,
       title, priceFormula, configurableProducts, virtualVariants, rules,
-      activateSurcharges, formulaModeSurcharges, useVariantNameInFormula,
+      activateSurcharges, formulaModeSurcharges, surchargesInFormula, useVariantNameInFormula,
       useUnifiedSku, unifiedSku, minimumPrice, useMinimumPrice,
       roundingEnabled, roundingPrecision, basePrice, redirectToDifferentPage,
       redirectLink, templateSuffix,
@@ -917,6 +927,7 @@ export default function ConfiguratorEditor() {
     setRules(configuration?.rules || []);
     setActivateSurcharges(configuration?.activateSurcharges || false);
     setFormulaModeSurcharges(configuration?.formulaModeSurcharges ?? true);
+    setSurchargesInFormula(configuration?.surchargesInFormula || false);
     setUseVariantNameInFormula(configuration?.useVariantNameInFormula ?? true);
     setUseUnifiedSku(configuration?.useUnifiedSku || false);
     setUnifiedSku(configuration?.unifiedSku || "");
@@ -957,7 +968,7 @@ export default function ConfiguratorEditor() {
     if (availableProducts.length < selected.length) {
       const skippedCount = selected.length - availableProducts.length;
       shopify.toast.show(
-        `${skippedCount} Produkt${skippedCount > 1 ? "e" : ""} übersprungen (bereits in anderem Konfigurator)`,
+        t("configuratorEditor.productsSkipped", { count: skippedCount }),
         { isError: true }
       );
     }
@@ -1042,7 +1053,7 @@ export default function ConfiguratorEditor() {
         ...originalOption,
         id: undefined,
         tempId: newTempId,
-        name: originalOption.name + " (Kopie)",
+        name: originalOption.name + t("configuratorEditor.copySuffix"),
       };
 
       const originalIndex = optionOrder.indexOf(optionId);
@@ -1058,7 +1069,7 @@ export default function ConfiguratorEditor() {
         return newOrder;
       });
 
-      shopify.toast.show(`Option "${originalOption.name}" dupliziert`);
+      shopify.toast.show(t("configuratorEditor.optionDuplicated", { name: originalOption.name }));
     },
     [options, optionOrder, shopify]
   );
@@ -1087,7 +1098,7 @@ export default function ConfiguratorEditor() {
     setCopyingOption(null);
     
     const targetConfig = otherConfigurators.find((c) => c.id.toString() === selectedTargetConfig);
-    shopify.toast.show(`Option in "${targetConfig?.title}" kopiert`);
+    shopify.toast.show(t("configuratorEditor.optionCopiedTo", { title: targetConfig?.title }));
   }, [copyingOption, selectedTargetConfig, submit, otherConfigurators, shopify]);
 
   // Move option in order (drag simulation via buttons)
@@ -1112,7 +1123,7 @@ export default function ConfiguratorEditor() {
   currentStateRef.current = {
     title, priceFormula, options, optionOrder,
     configurableProducts, virtualVariants, rules,
-    activateSurcharges, formulaModeSurcharges, useVariantNameInFormula,
+    activateSurcharges, formulaModeSurcharges, surchargesInFormula, useVariantNameInFormula,
     useUnifiedSku, unifiedSku, minimumPrice, useMinimumPrice,
     basePrice, redirectToDifferentPage, redirectLink, templateSuffix,
   };
@@ -1176,7 +1187,7 @@ export default function ConfiguratorEditor() {
       // Increment saveVersion to force isDirty re-computation
       setSaveVersion((v) => v + 1);
       
-      shopify.toast.show("Gespeichert");
+      shopify.toast.show(t("configuratorEditor.saved"));
       
       // Navigate if there's a pending navigation after save
       if (navigateAfterSaveRef.current) {
@@ -1220,23 +1231,23 @@ export default function ConfiguratorEditor() {
     }
   }, [isDirty, navigate]);
 
-  const PRICE_MODE_LABELS = {
-    "price-formula": { title: "Preisformel-Modus", tone: "info" },
-    "variant-price": { title: "Variantenpreis-Modus", tone: "attention" },
-    "info-only": { title: "Personalisierung ohne Preisänderung", tone: "success" },
-  };
+  const PRICE_MODE_LABELS = useMemo(() => ({
+    "price-formula": { title: t("configuratorEditor.priceFormulaMode"), tone: "info" },
+    "variant-price": { title: t("configuratorEditor.variantPriceMode"), tone: "attention" },
+    "info-only": { title: t("configuratorEditor.infoOnlyMode"), tone: "success" },
+  }), [t]);
 
   return (
     <Page
-      title={`Konfigurator: ${configuration?.title}`}
+      title={t("configuratorEditor.pageTitle", { title: configuration?.title })}
       titleMetadata={
         <Badge tone={PRICE_MODE_LABELS[priceMode]?.tone || "info"}>
           {PRICE_MODE_LABELS[priceMode]?.title || priceMode}
         </Badge>
       }
-      backAction={{ content: "Zurück", onAction: handleBack }}
+      backAction={{ content: t("common.back"), onAction: handleBack }}
       primaryAction={{
-        content: "Speichern",
+        content: t("common.save"),
         loading: isSaving,
         onAction: handleSave,
         disabled: !isDirty,
@@ -1245,15 +1256,15 @@ export default function ConfiguratorEditor() {
       {isDirty && (
         <SaveBar id="vepo-save-bar">
           <button variant="primary" onClick={handleSave} loading={isSaving ? "" : undefined}>
-            Speichern
+            {t("common.save")}
           </button>
-          <button onClick={handleDiscard}>Verwerfen</button>
+          <button onClick={handleDiscard}>{t("common.cancel")}</button>
         </SaveBar>
       )}
 
       {actionData?.errors && (
         <Layout.Section>
-          <Banner tone="critical" title="Fehler beim Speichern">
+          <Banner tone="critical" title={t("configuratorEditor.saveError")}>
             <BlockStack gap="100">
               {Object.entries(actionData.errors).map(([key, value]) => (
                 <Text key={key} as="p">
@@ -1270,7 +1281,7 @@ export default function ConfiguratorEditor() {
         <Layout.Section>
           <Card>
             <TextField
-              label="Name des Konfigurators"
+              label={t("configuratorEditor.configName")}
               value={title}
               onChange={setTitle}
               autoComplete="off"
@@ -1296,16 +1307,16 @@ export default function ConfiguratorEditor() {
             <BlockStack gap="400">
               <BlockStack gap="200">
                 <Text variant="headingMd" as="h3">
-                  Theme-Vorlage zuweisen (optional)
+                  {t("configuratorEditor.templateTitle")}
                 </Text>
                 <Text variant="bodyMd" tone="subdued">
-                  Damit der Konfigurator auf deinen Produktseiten angezeigt wird, muss das Produkt eine Vorlage verwenden, die den Visionz Easy Product Options Block enthält.
+                  {t("configuratorEditor.templateDesc")}
                 </Text>
               </BlockStack>
 
               <Select
                 options={[
-                  { label: "Nicht automatisch setzen (ich mache das manuell)", value: "" },
+                  { label: t("configuratorEditor.templateManual"), value: "" },
                   ...templates
                     .filter((t) => t.suffix) // Filter out templates with empty suffix
                     .map((t) => ({
@@ -1321,14 +1332,14 @@ export default function ConfiguratorEditor() {
                 <Banner tone="warning">
                   <BlockStack gap="300">
                     <Text variant="bodyMd">
-                      Noch keine eigene Produkt-Vorlage mit dem "Visionz Easy Product Options" Block erstellt?
+                      {t("configuratorEditor.noTemplateHint")}
                     </Text>
                     <InlineStack>
                       <Button
                         url={`https://${shop}/admin/themes/current/editor`}
                         target="_blank"
                       >
-                        Theme Vorlage erstellen
+                        {t("configuratorEditor.createTemplate")}
                       </Button>
                     </InlineStack>
                   </BlockStack>
@@ -1338,14 +1349,19 @@ export default function ConfiguratorEditor() {
               {templateSuffix && configurableProducts.length > 0 && (
                 <Banner tone="success">
                   <p>
-                    Beim Speichern {configurableProducts.length === 1 ? "wird" : "werden"} {configurableProducts.length} Produkt{configurableProducts.length !== 1 ? "e" : ""} automatisch auf die Vorlage "{templates.find(t => t.suffix === templateSuffix)?.name || templateSuffix}" gesetzt.
+                    {t("configuratorEditor.templateAutoAssign", {
+                      verb: configurableProducts.length === 1 ? "wird" : "werden",
+                      count: configurableProducts.length,
+                      suffix: configurableProducts.length !== 1 ? "e" : "",
+                      template: templates.find(tmpl => tmpl.suffix === templateSuffix)?.name || templateSuffix,
+                    })}
                   </p>
                 </Banner>
               )}
 
               {!templateSuffix && configurableProducts.length > 0 && (
                 <Text variant="bodySm" tone="caution">
-                  Hinweis: Ohne automatische Vorlagen-Zuweisung musst du im Shopify Admin bei jedem Produkt manuell die richtige Vorlage auswählen.
+                  {t("configuratorEditor.templateManualHint")}
                 </Text>
               )}
             </BlockStack>
@@ -1358,16 +1374,16 @@ export default function ConfiguratorEditor() {
             <BlockStack gap="400">
               <InlineStack align="space-between" blockAlign="center">
                 <Text variant="headingMd" as="h3">
-                  Optionen
+                  {t("common.options")}
                 </Text>
                 <Button onClick={() => setOptionPickerOpen(true)}>
-                  Option hinzufügen
+                  {t("configuratorEditor.addOption")}
                 </Button>
               </InlineStack>
 
               {orderedOptions.length === 0 ? (
                 <Banner tone="info">
-                  <p>Noch keine Optionen. Füge Optionen hinzu, aus denen deine Kunden wählen können.</p>
+                  <p>{t("configuratorEditor.noOptions")}</p>
                 </Banner>
               ) : (
                 <BlockStack gap="200">
@@ -1398,7 +1414,7 @@ export default function ConfiguratorEditor() {
                                   e.stopPropagation();
                                   moveOption(index, -1);
                                 }}
-                                accessibilityLabel="Nach oben"
+                                accessibilityLabel={t("common.moveUp")}
                               />
                               <Button
                                 icon={ChevronDownIcon}
@@ -1409,13 +1425,13 @@ export default function ConfiguratorEditor() {
                                   e.stopPropagation();
                                   moveOption(index, 1);
                                 }}
-                                accessibilityLabel="Nach unten"
+                                accessibilityLabel={t("common.moveDown")}
                               />
                             </InlineStack>
                             <Icon source={OptionIcon} />
                             <BlockStack gap="0">
                               <Text variant="bodyMd" fontWeight="semibold">
-                                {option.name || "Unbenannte Option"}
+                                {option.name || t("common.unnamedOption")}
                               </Text>
                               <Text variant="bodySm" tone="subdued">
                                 {OPTION_TYPE_LABELS[option.type] || option.type}
@@ -1430,7 +1446,7 @@ export default function ConfiguratorEditor() {
                                 e.stopPropagation();
                                 handleDuplicateOption(optionId);
                               }}
-                              accessibilityLabel="Option duplizieren"
+                              accessibilityLabel={t("configuratorEditor.duplicateOption")}
                             />
                             {otherConfigurators.length > 0 && (
                               <Button
@@ -1440,7 +1456,7 @@ export default function ConfiguratorEditor() {
                                   e.stopPropagation();
                                   handleOpenCopyToModal(optionId);
                                 }}
-                                accessibilityLabel="Option in anderen Konfigurator kopieren"
+                                accessibilityLabel={t("configuratorEditor.copyToConfig")}
                               />
                             )}
                             <Button
@@ -1451,7 +1467,7 @@ export default function ConfiguratorEditor() {
                                 e.stopPropagation();
                                 handleRemoveOption(optionId);
                               }}
-                              accessibilityLabel="Option entfernen"
+                              accessibilityLabel={t("configuratorEditor.removeOption")}
                             />
                           </InlineStack>
                         </InlineStack>
@@ -1471,6 +1487,7 @@ export default function ConfiguratorEditor() {
               formula={priceFormula}
               onChange={setPriceFormula}
               options={options}
+              surchargesInFormula={surchargesInFormula}
               minimumPrice={minimumPrice}
               onMinimumPriceChange={setMinimumPrice}
               roundingEnabled={roundingEnabled}
@@ -1513,7 +1530,7 @@ export default function ConfiguratorEditor() {
               >
                 <InlineStack align="space-between" blockAlign="center">
                   <Text variant="headingMd" as="h3">
-                    Weitere Einstellungen
+                    {t("configuratorEditor.advancedSettings")}
                   </Text>
                   <div style={{ marginLeft: "auto", marginRight: 0 }}>
                     <Icon source={advancedOpen ? ChevronUpIcon : ChevronDownIcon} />
@@ -1525,30 +1542,42 @@ export default function ConfiguratorEditor() {
                 <BlockStack gap="300">
                   {(priceMode === "info-only" || priceMode === "default") && (
                     <Checkbox
-                      label="Aufpreise aktivieren (Personalisierung ohne Preisänderung)"
+                      label={t("configuratorEditor.activateSurcharges")}
                       checked={activateSurcharges}
                       onChange={setActivateSurcharges}
                     />
                   )}
 
                   {priceMode === "price-formula" && (
-                    <Checkbox
-                      label="Aufpreise zusätzlich zur Formel (Preisformel-Modus)"
-                      checked={formulaModeSurcharges}
-                      onChange={setFormulaModeSurcharges}
-                    />
+                    <BlockStack gap="200">
+                      <Checkbox
+                        label={t("configuratorEditor.formulaSurcharges")}
+                        checked={formulaModeSurcharges}
+                        onChange={setFormulaModeSurcharges}
+                        disabled={surchargesInFormula}
+                      />
+                      <Checkbox
+                        label={t("configuratorEditor.surchargesInFormula")}
+                        checked={surchargesInFormula}
+                        onChange={(val) => {
+                          setSurchargesInFormula(val);
+                          if (val) setFormulaModeSurcharges(false);
+                        }}
+                        helpText={t("configuratorEditor.surchargesInFormulaHelp")}
+                      />
+                    </BlockStack>
                   )}
 
                   <Divider />
 
                   <Checkbox
-                    label="Einheitliche SKU für alle Varianten"
+                    label={t("configuratorEditor.unifiedSku")}
                     checked={useUnifiedSku}
                     onChange={setUseUnifiedSku}
                   />
                   {useUnifiedSku && (
                     <TextField
-                      label="SKU"
+                      label={t("common.sku")}
                       value={unifiedSku}
                       onChange={setUnifiedSku}
                       autoComplete="off"
@@ -1558,13 +1587,13 @@ export default function ConfiguratorEditor() {
                   <Divider />
 
                   <Checkbox
-                    label="Nach dem Hinzufügen zum Warenkorb auf eine andere Seite weiterleiten"
+                    label={t("configuratorEditor.redirectAfterAdd")}
                     checked={redirectToDifferentPage}
                     onChange={setRedirectToDifferentPage}
                   />
                   {redirectToDifferentPage && (
                     <TextField
-                      label="Weiterleitungs-URL"
+                      label={t("configuratorEditor.redirectUrl")}
                       value={redirectLink}
                       onChange={setRedirectLink}
                       autoComplete="off"
@@ -1588,9 +1617,9 @@ export default function ConfiguratorEditor() {
       <Modal
         open={unsavedChangesModalOpen}
         onClose={() => setUnsavedChangesModalOpen(false)}
-        title="Ungespeicherte Änderungen"
+        title={t("common.unsavedChanges")}
         primaryAction={{
-          content: "Speichern",
+          content: t("common.save"),
           onAction: () => {
             handleSave();
             setUnsavedChangesModalOpen(false);
@@ -1598,19 +1627,19 @@ export default function ConfiguratorEditor() {
         }}
         secondaryActions={[
           {
-            content: "Ohne Speichern verlassen",
+            content: t("common.leaveWithoutSaving"),
             destructive: true,
             onAction: () => navigate("/app"),
           },
           {
-            content: "Weiter bearbeiten",
+            content: t("common.continueEditing"),
             onAction: () => setUnsavedChangesModalOpen(false),
           },
         ]}
       >
         <Modal.Section>
           <Text as="p">
-            Du hast ungespeicherte Änderungen. Wenn du jetzt zurückgehst, gehen diese verloren.
+            {t("configuratorEditor.unsavedBackText")}
           </Text>
         </Modal.Section>
       </Modal>
@@ -1622,9 +1651,9 @@ export default function ConfiguratorEditor() {
             setPendingOptionNavigation(null);
           }
         }}
-        title="Ungespeicherte Änderungen"
+        title={t("common.unsavedChanges")}
         primaryAction={{
-          content: isSavingAndNavigating ? "Wird gespeichert..." : "Speichern und fortfahren",
+          content: isSavingAndNavigating ? t("common.saving") : t("common.saveAndContinue"),
           loading: isSavingAndNavigating,
           onAction: () => {
             navigateAfterSaveRef.current = pendingOptionNavigation;
@@ -1634,7 +1663,7 @@ export default function ConfiguratorEditor() {
         }}
         secondaryActions={isSavingAndNavigating ? [] : [
           {
-            content: "Ohne Speichern fortfahren",
+            content: t("common.continueWithoutSaving"),
             destructive: true,
             onAction: () => {
               const target = pendingOptionNavigation;
@@ -1643,14 +1672,14 @@ export default function ConfiguratorEditor() {
             },
           },
           {
-            content: "Abbrechen",
+            content: t("common.cancel"),
             onAction: () => setPendingOptionNavigation(null),
           },
         ]}
       >
         <Modal.Section>
           <Text as="p">
-            Du hast ungespeicherte Änderungen im Konfigurator. Wenn du zur Option navigierst, ohne zu speichern, gehen diese verloren.
+            {t("configuratorEditor.unsavedOptionNavText")}
           </Text>
         </Modal.Section>
       </Modal>
@@ -1661,15 +1690,15 @@ export default function ConfiguratorEditor() {
           setCopyToModalOpen(false);
           setCopyingOption(null);
         }}
-        title="Option in anderen Konfigurator kopieren"
+        title={t("configuratorEditor.copyOptionTitle")}
         primaryAction={{
-          content: "Kopieren",
+          content: t("configuratorEditor.copyAction"),
           onAction: handleCopyOptionToConfig,
           disabled: !selectedTargetConfig,
         }}
         secondaryActions={[
           {
-            content: "Abbrechen",
+            content: t("common.cancel"),
             onAction: () => {
               setCopyToModalOpen(false);
               setCopyingOption(null);
@@ -1680,10 +1709,10 @@ export default function ConfiguratorEditor() {
         <Modal.Section>
           <BlockStack gap="400">
             <Text as="p">
-              Option <Text as="span" fontWeight="bold">„{copyingOption?.name || "Unbenannt"}"</Text> wird in den ausgewählten Konfigurator kopiert.
+              {t("configuratorEditor.copyDescription", { name: copyingOption?.name || t("common.unnamed") })}
             </Text>
             <Select
-              label="Ziel-Konfigurator"
+              label={t("configuratorEditor.targetConfigurator")}
               options={otherConfigurators.map((c) => ({
                 label: c.title,
                 value: c.id.toString(),

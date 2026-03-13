@@ -10,14 +10,15 @@ import {
 } from "@shopify/polaris";
 import { DeleteIcon, ChevronUpIcon, ChevronDownIcon } from "@shopify/polaris-icons";
 import { useCallback } from "react";
+import { useTranslation } from "../../utils/i18n";
 
-// Format price: remove leading zeros, ensure 2 decimal places
 const formatPrice = (value) => {
   const num = parseFloat(value) || 0;
   return num.toFixed(2);
 };
 
 export default function VariantSwatchOption({ option, onChange }) {
+  const { t } = useTranslation();
   const values = Array.isArray(option.values) ? option.values : [];
   const hasExplicitDefault = values.some((v) => v.isDefault);
 
@@ -67,7 +68,7 @@ export default function VariantSwatchOption({ option, onChange }) {
   return (
     <BlockStack gap="400">
       <Text variant="headingSm" as="h4">
-        Varianten
+        {t("options.variantSwatch.variants")}
       </Text>
 
       {values.map((value, index) => {
@@ -81,7 +82,7 @@ export default function VariantSwatchOption({ option, onChange }) {
               </InlineStack>
               <div style={{ flex: 1 }}>
                 <TextField
-                  label="Name"
+                  label={t("common.name")}
                   value={value.name}
                   onChange={(val) => updateValue(index, "name", val)}
                   autoComplete="off"
@@ -90,7 +91,7 @@ export default function VariantSwatchOption({ option, onChange }) {
               {option.hasAdditionalPrice && (
                 <div style={{ width: "120px" }}>
                   <TextField
-                    label="Aufpreis (€)"
+                    label={t("common.surcharge")}
                     type="number"
                     value={String(value.surcharge ?? "0.00")}
                     onChange={(val) => updateValue(index, "surcharge", val)}
@@ -104,9 +105,9 @@ export default function VariantSwatchOption({ option, onChange }) {
                   type="button"
                   onClick={() => setAsDefault(index)}
                   style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
-                  title={isEffectiveDefault ? "Standardwert" : "Als Standardwert setzen"}
+                  title={isEffectiveDefault ? t("common.defaultValue") : t("common.setAsDefault")}
                 >
-                  <Badge tone={isEffectiveDefault ? "success" : undefined}>Standard</Badge>
+                  <Badge tone={isEffectiveDefault ? "success" : undefined}>{t("common.standard")}</Badge>
                 </button>
               )}
               <Button icon={DeleteIcon} variant="plain" tone="critical" onClick={() => removeValue(index)} />
@@ -115,7 +116,7 @@ export default function VariantSwatchOption({ option, onChange }) {
         );
       })}
 
-      <Button onClick={addValue}>Variante hinzufügen</Button>
+      <Button onClick={addValue}>{t("options.variantSwatch.addVariant")}</Button>
     </BlockStack>
   );
 }

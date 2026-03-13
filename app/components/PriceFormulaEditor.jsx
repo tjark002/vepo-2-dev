@@ -12,20 +12,12 @@ import {
   Select,
 } from "@shopify/polaris";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useTranslation } from "../utils/i18n";
 
 const formatPrice = (value) => {
   const num = parseFloat(value) || 0;
   return num.toFixed(2);
 };
-
-const ROUNDING_OPTIONS = [
-  { label: "0.01 (Cent)", value: "0.01" },
-  { label: "0.1", value: "0.1" },
-  { label: "1 (Euro)", value: "1" },
-  { label: "10", value: "10" },
-  { label: "100", value: "100" },
-  { label: "1000", value: "1000" },
-];
 
 const variableTagStyle = {
   display: "inline-flex",
@@ -116,10 +108,13 @@ const VariableTag = ({ name, value, index, onRemove, isDragging }) => {
   );
 };
 
+const SWATCH_TYPES = ["variantswatch", "colorswatch", "imageswatch", "dropdown"];
+
 export default function PriceFormulaEditor({
   formula,
   onChange,
   options,
+  surchargesInFormula,
   minimumPrice,
   onMinimumPriceChange,
   roundingEnabled,
@@ -127,6 +122,7 @@ export default function PriceFormulaEditor({
   roundingPrecision,
   onRoundingPrecisionChange,
 }) {
+  const { t } = useTranslation();
   const [previewResult, setPreviewResult] = useState(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [dragSourceIndex, setDragSourceIndex] = useState(null);
@@ -134,11 +130,24 @@ export default function PriceFormulaEditor({
   const editorRef = useRef(null);
   const containerRef = useRef(null);
 
+  const ROUNDING_OPTIONS = useMemo(() => [
+    { label: t("priceFormulaEditor.roundCent"), value: "0.01" },
+    { label: "0.1", value: "0.1" },
+    { label: t("priceFormulaEditor.roundEuro"), value: "1" },
+    { label: "10", value: "10" },
+    { label: "100", value: "100" },
+    { label: "1000", value: "1000" },
+  ], [t]);
+
   const variableNames = useMemo(() => 
     options
-      .filter((o) => o.type === "dimension" || o.type === "dimensionselect")
+      .filter((o) =>
+        o.type === "dimension" ||
+        o.type === "dimensionselect" ||
+        (surchargesInFormula && SWATCH_TYPES.includes(o.type))
+      )
       .map((o) => o.name),
-    [options]
+    [options, surchargesInFormula]
   );
 
   const variableButtons = variableNames.map((name) => ({
@@ -341,6 +350,18 @@ export default function PriceFormulaEditor({
           new RegExp("\\[" + o.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\]", "g"),
           String(testValue)
         );
+      } else if (surchargesInFormula && SWATCH_TYPES.includes(o.type)) {
+        let testValue = 0;
+        try {
+          const values = typeof o.values === "string" ? JSON.parse(o.values) : o.values || [];
+          if (values.length > 0 && values[0].surcharge) {
+            testValue = parseFloat(values[0].surcharge) || 0;
+          }
+        } catch (e) {}
+        testFormula = testFormula.replace(
+          new RegExp("\\[" + o.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\]", "g"),
+          String(testValue)
+        );
       }
     });
 
@@ -359,13 +380,13 @@ export default function PriceFormulaEditor({
     } catch {
       setPreviewResult({ status: "error", value: null });
     }
-  }, [formula, options]);
+  }, [formula, options, surchargesInFormula]);
 
   const renderTokens = () => {
     if (tokens.length === 0) {
       return (
         <span style={{ color: "#999", fontStyle: "italic" }}>
-          Formel hier eingeben...
+          {t("priceFormulaEditor.formulaPlaceholder")}
         </span>
       );
     }
@@ -435,14 +456,14 @@ export default function PriceFormulaEditor({
       >
       <BlockStack gap="400">
         <Text variant="headingMd" as="h3">
-          Preisformel-Rechner
+          {t("priceFormulaEditor.title")}
         </Text>
         <Text variant="bodySm" tone="subdued">
-          Tippe mit der Tastatur oder klicke die Buttons. Variablen können hineingezogen und verschoben werden.
+          {t("priceFormulaEditor.subtitle")}
         </Text>
 
         <BlockStack gap="100">
-          <Text variant="bodySm" fontWeight="medium">Formel</Text>
+          <Text variant="bodySm" fontWeight="medium">{t("priceFormulaEditor.formula")}</Text>
           <InlineStack gap="200" align="center">
             <div 
               ref={editorRef}
@@ -528,7 +549,7 @@ export default function PriceFormulaEditor({
 
           <BlockStack gap="200">
             <Text variant="bodySm" fontWeight="semibold">
-              Variablen (ziehen oder klicken)
+              {t("priceFormulaEditor.variables")}
             </Text>
             {hasVariables ? (
               <BlockStack gap="200">
@@ -570,7 +591,9 @@ export default function PriceFormulaEditor({
             ) : (
               <Box padding="200" background="bg-surface-secondary" borderRadius="200">
                 <Text variant="bodySm" tone="subdued">
-                  Erstelle eine „Maßeingabe" oder „Maß-Auswahl" Option, um Variablen hier zu sehen.
+                  {surchargesInFormula
+                    ? t("priceFormulaEditor.noVariablesSurcharges")
+                    : t("priceFormulaEditor.noVariables")}
                 </Text>
               </Box>
             )}
@@ -579,14 +602,14 @@ export default function PriceFormulaEditor({
 
         <BlockStack gap="200">
           <Checkbox
-            label="Endpreis runden"
+            label={t("priceFormulaEditor.roundPrice")}
             checked={roundingEnabled}
             onChange={onRoundingEnabledChange}
           />
           {roundingEnabled && (
             <div style={{ maxWidth: "200px" }}>
               <Select
-                label="Runden auf"
+                label={t("priceFormulaEditor.roundTo")}
                 labelHidden
                 options={ROUNDING_OPTIONS}
                 value={String(roundingPrecision || "1")}
@@ -601,11 +624,11 @@ export default function PriceFormulaEditor({
             <Text as="span">
               {previewResult.status === "valid" && (
                 <>
-                  Korrekte Formel — Beispielergebnis: <strong>{previewResult.value.toFixed(2)} €</strong>
+                  {t("priceFormulaEditor.validFormula", { value: previewResult.value.toFixed(2) })}
                 </>
               )}
-              {previewResult.status === "invalid" && "Formel ergibt keinen gültigen Wert"}
-              {previewResult.status === "error" && "Syntaxfehler in der Formel"}
+              {previewResult.status === "invalid" && t("priceFormulaEditor.invalidFormula")}
+              {previewResult.status === "error" && t("priceFormulaEditor.syntaxError")}
             </Text>
           </Banner>
         )}
@@ -614,13 +637,13 @@ export default function PriceFormulaEditor({
 
         <TextField
           type="number"
-          label="Mindestpreis (€)"
+          label={t("priceFormulaEditor.minimumPrice")}
           value={String(minimumPrice ?? "0.00")}
           onChange={onMinimumPriceChange}
           onBlur={() => onMinimumPriceChange(formatPrice(minimumPrice))}
           autoComplete="off"
           placeholder="0.00"
-          helpText="Der berechnete Preis wird mindestens diesen Wert haben"
+          helpText={t("priceFormulaEditor.minimumPriceHelp")}
         />
       </BlockStack>
       </div>

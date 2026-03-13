@@ -10,21 +10,23 @@ import {
   Badge,
 } from "@shopify/polaris";
 import { DeleteIcon, ChevronUpIcon, ChevronDownIcon } from "@shopify/polaris-icons";
-import { useCallback } from "react";
-
-const UNITS = [
-  { label: "cm", value: "cm" },
-  { label: "mm", value: "mm" },
-  { label: "m", value: "m" },
-  { label: "Zoll", value: "in" },
-  { label: "kg", value: "kg" },
-  { label: "g", value: "g" },
-  { label: "Stück", value: "pcs" },
-  { label: "Liter", value: "l" },
-  { label: "ml", value: "ml" },
-];
+import { useCallback, useMemo } from "react";
+import { useTranslation } from "../../utils/i18n";
 
 export default function DimensionSelectOption({ option, onChange }) {
+  const { t } = useTranslation();
+
+  const UNITS = useMemo(() => [
+    { label: "cm", value: "cm" },
+    { label: "mm", value: "mm" },
+    { label: "m", value: "m" },
+    { label: t("units.inch"), value: "in" },
+    { label: "kg", value: "kg" },
+    { label: "g", value: "g" },
+    { label: t("units.pieces"), value: "pcs" },
+    { label: t("units.liters"), value: "l" },
+    { label: "ml", value: "ml" },
+  ], [t]);
   const values = Array.isArray(option.values) ? option.values : [];
   const hasExplicitDefault = values.some((v) => v.isDefault);
 
@@ -78,22 +80,19 @@ export default function DimensionSelectOption({ option, onChange }) {
   return (
     <BlockStack gap="400">
       <Banner tone="info">
-        <p>
-          Maß-Auswahl zeigt feste numerische Werte als klickbare Kacheln an.
-          Der ausgewählte Wert kann in der Preisformel als <strong>[{option.name || "optionsname"}]</strong> verwendet werden.
-        </p>
+        <p>{t("options.dimensionSelect.bannerInfo", { name: option.name || "optionsname" })}</p>
       </Banner>
 
       <Select
-        label="Einheit"
+        label={t("common.unit")}
         options={UNITS}
         value={option.unit || "cm"}
         onChange={(val) => update("unit", val)}
-        helpText="Die Einheit wird hinter jedem Wert angezeigt"
+        helpText={t("options.dimensionSelect.unitHelp")}
       />
 
       <Text variant="headingSm" as="h4">
-        Werte
+        {t("common.values")}
       </Text>
 
       {values.map((value, index) => {
@@ -107,22 +106,22 @@ export default function DimensionSelectOption({ option, onChange }) {
               </InlineStack>
               <div style={{ flex: 1, minWidth: "100px" }}>
                 <TextField
-                  label="Anzeigetext"
+                  label={t("options.dimensionSelect.displayText")}
                   value={value.name}
                   onChange={(val) => updateValue(index, "name", val)}
                   autoComplete="off"
-                  placeholder="z.B. Klein, Mittel, Groß"
-                  helpText="Optional - wenn leer, wird der Wert mit Einheit angezeigt"
+                  placeholder={t("options.dimensionSelect.displayTextPlaceholder")}
+                  helpText={t("options.dimensionSelect.displayTextHelp")}
                 />
               </div>
               <div style={{ width: "120px" }}>
                 <TextField
-                  label="Wert"
+                  label={t("common.value")}
                   type="number"
                   value={String(value.numericValue || "")}
                   onChange={(val) => updateValue(index, "numericValue", val)}
                   autoComplete="off"
-                  placeholder="z.B. 50"
+                  placeholder={t("options.dimensionSelect.valuePlaceholder")}
                   requiredIndicator
                 />
               </div>
@@ -131,9 +130,9 @@ export default function DimensionSelectOption({ option, onChange }) {
                   type="button"
                   onClick={() => setAsDefault(index)}
                   style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
-                  title={isEffectiveDefault ? "Standardwert" : "Als Standardwert setzen"}
+                  title={isEffectiveDefault ? t("common.defaultValue") : t("common.setAsDefault")}
                 >
-                  <Badge tone={isEffectiveDefault ? "success" : undefined}>Standard</Badge>
+                  <Badge tone={isEffectiveDefault ? "success" : undefined}>{t("common.standard")}</Badge>
                 </button>
               )}
               <Button icon={DeleteIcon} variant="plain" tone="critical" onClick={() => removeValue(index)} />
@@ -142,7 +141,7 @@ export default function DimensionSelectOption({ option, onChange }) {
         );
       })}
 
-      <Button onClick={addValue}>Wert hinzufügen</Button>
+      <Button onClick={addValue}>{t("options.dimensionSelect.addValue")}</Button>
     </BlockStack>
   );
 }

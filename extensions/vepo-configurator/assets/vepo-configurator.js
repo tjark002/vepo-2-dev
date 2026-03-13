@@ -942,11 +942,13 @@
     if (config.priceMode === "price-formula") {
       let formula = config.priceFormula;
 
-      // Only dimension and dimensionselect options can be used in formulas (they have numeric values)
       for (const [name, opt] of Object.entries(vepoSelectedOptions)) {
         if (opt.type === "dimension" || opt.type === "dimensionselect") {
           const regex = new RegExp("\\[" + name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\]", "g");
           formula = formula.replace(regex, opt.value || "0");
+        } else if (config.surchargesInFormula) {
+          const regex = new RegExp("\\[" + name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\]", "g");
+          formula = formula.replace(regex, String(opt.surcharge || 0));
         }
       }
 
@@ -966,8 +968,9 @@
         price = 0;
       }
 
-      // Add surcharges
-      if (config.formulaModeSurcharges) {
+      if (config.surchargesInFormula) {
+        // Surcharges are already substituted as formula variables — don't add on top
+      } else if (config.formulaModeSurcharges) {
         for (const opt of Object.values(vepoSelectedOptions)) {
           if (opt.surcharge > 0) {
             price += opt.surcharge;

@@ -15,77 +15,12 @@ import {
   Divider,
   Icon,
 } from "@shopify/polaris";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
+import { useTranslation } from "../utils/i18n";
 
-// ============================================================================
-// Price mode definitions with detailed descriptions
-// ============================================================================
-
-const PRICE_MODES = [
-  {
-    value: "price-formula",
-    title: "Preisformel-Modus",
-    subtitle: "Dynamische Preisberechnung mit Formeln",
-    description:
-      "Der Preis wird anhand einer Formel berechnet, die auf Maßen, Varianten und anderen Eingaben basiert. Ideal wenn der Preis von Kundeneingaben abhängt.",
-    useCases: [
-      "Produkte, deren Preis von Maßen abhängt (z.B. Rollos, Stoffe, Planen)",
-      "Produkte mit flächen- oder volumenbasierter Preisberechnung",
-    ],
-    features: [
-      "Formeleditor mit Variablen (Breite, Höhe, etc.)",
-      "Optionale Aufpreise zusätzlich zur Formel",
-      "Mindestpreise",
-    ],
-    limitations: [
-      "Preis ist nicht manuell pro Variante einstellbar",
-      "Deine Shopify Produktvarianten werden überschrieben",
-    ],
-  },
-  {
-    value: "variant-price",
-    title: "Variantenpreis-Modus",
-    subtitle: "Feste Preise pro Varianten-Kombination",
-    description:
-      "Jede mögliche Kombination aus Optionen erhält einen individuell festgelegten Preis. Ideal wenn du die volle Kontrolle über jeden Einzelpreis haben möchtest.",
-    useCases: [
-      "Du willst einfach mehr als 3 Variantenebenen anbieten",
-      "Jede Variante soll einzeln bepreist werden können",
-    ],
-    features: [
-      "Automatische Variantenerstellung für alle Kombinationen",
-      "Basispreis + individuelle Anpassung pro Variante",
-    ],
-    limitations: [
-      "Deine Shopify Produktvarianten werden überschrieben",
-      "Keine Preisformeln möglich",
-    ],
-  },
-  {
-    value: "info-only",
-    title: "Personalisierung ohne Preisänderung",
-    subtitle: "Optionen ohne Einfluss auf den Preis",
-    description:
-      "Die Auswahl des Kunden wird als Eigenschaft an den Warenkorb übergeben, aber der Preis bleibt unverändert beim Original-Produktpreis. Ideal für reine Personalisierung.",
-    useCases: [
-      "Gravuren, Texte oder Initialen auf Produkten",
-      "Farbwahl oder Materialwahl ohne Preisunterschied",
-      "Geschenkverpackung oder Widmungen",
-      "Terminwahl oder Datumsauswahl",
-    ],
-    features: [
-      "Einfachste Konfiguration",
-      "Keine Varianten-Erstellung nötig",
-      "Originalpreis des Produkts bleibt erhalten",
-    ],
-    limitations: [
-      "Kein dynamischer Preis basierend auf Auswahl",
-      "Aufpreise sind nicht möglich",
-    ],
-  },
-];
+// Price mode definitions moved inside component for i18n support
 
 // ============================================================================
 // Loader
@@ -142,20 +77,82 @@ export default function NewConfiguratorSetup() {
   const navigate = useNavigate();
   const navigation = useNavigation();
   const isSubmitting = navigation.state === "submitting";
+  const { t } = useTranslation();
 
   const [title, setTitle] = useState("");
   const [selectedMode, setSelectedMode] = useState(null);
+
+  const PRICE_MODES = useMemo(() => [
+    {
+      value: "price-formula",
+      title: t("configuratorNew.priceFormulaTitle"),
+      subtitle: t("configuratorNew.priceFormulaSubtitle"),
+      description: t("configuratorNew.priceFormulaDesc"),
+      useCases: [
+        t("configuratorNew.pf_useCase1"),
+        t("configuratorNew.pf_useCase2"),
+      ],
+      features: [
+        t("configuratorNew.pf_feature1"),
+        t("configuratorNew.pf_feature2"),
+        t("configuratorNew.pf_feature3"),
+      ],
+      limitations: [
+        t("configuratorNew.pf_limit1"),
+        t("configuratorNew.pf_limit2"),
+      ],
+    },
+    {
+      value: "variant-price",
+      title: t("configuratorNew.variantPriceTitle"),
+      subtitle: t("configuratorNew.variantPriceSubtitle"),
+      description: t("configuratorNew.variantPriceDesc"),
+      useCases: [
+        t("configuratorNew.vp_useCase1"),
+        t("configuratorNew.vp_useCase2"),
+      ],
+      features: [
+        t("configuratorNew.vp_feature1"),
+        t("configuratorNew.vp_feature2"),
+      ],
+      limitations: [
+        t("configuratorNew.vp_limit1"),
+        t("configuratorNew.vp_limit2"),
+      ],
+    },
+    {
+      value: "info-only",
+      title: t("configuratorNew.infoOnlyTitle"),
+      subtitle: t("configuratorNew.infoOnlySubtitle"),
+      description: t("configuratorNew.infoOnlyDesc"),
+      useCases: [
+        t("configuratorNew.io_useCase1"),
+        t("configuratorNew.io_useCase2"),
+        t("configuratorNew.io_useCase3"),
+        t("configuratorNew.io_useCase4"),
+      ],
+      features: [
+        t("configuratorNew.io_feature1"),
+        t("configuratorNew.io_feature2"),
+        t("configuratorNew.io_feature3"),
+      ],
+      limitations: [
+        t("configuratorNew.io_limit1"),
+        t("configuratorNew.io_limit2"),
+      ],
+    },
+  ], [t]);
 
   const canContinue = title.trim().length > 0 && selectedMode !== null;
 
   return (
     <Page
-      title="Neuer Konfigurator"
-      backAction={{ content: "Zurück", onAction: () => navigate("/app") }}
+      title={t("configuratorNew.pageTitle")}
+      backAction={{ content: t("common.back"), onAction: () => navigate("/app") }}
     >
       {actionData?.errors && (
         <Layout.Section>
-          <Banner tone="critical" title="Fehler">
+          <Banner tone="critical" title={t("common.error")}>
             <BlockStack gap="100">
               {Object.entries(actionData.errors).map(([key, value]) => (
                 <Text key={key} as="p">
@@ -173,17 +170,17 @@ export default function NewConfiguratorSetup() {
           <Card>
             <BlockStack gap="300">
               <Text variant="headingMd" as="h2">
-                Schritt 1: Name vergeben
+                {t("configuratorNew.step1")}
               </Text>
               <TextField
-                label="Name des Konfigurators"
+                label={t("configuratorNew.step1Name")}
                 value={title}
                 onChange={setTitle}
                 autoComplete="off"
                 requiredIndicator
-                placeholder="z.B. Rollo-Konfigurator, T-Shirt-Designer..."
+                placeholder={t("configuratorNew.step1Placeholder")}
                 error={actionData?.errors?.title}
-                helpText="Der Name hilft dir, den Konfigurator in der Übersicht zu identifizieren."
+                helpText={t("configuratorNew.step1Help")}
               />
             </BlockStack>
           </Card>
@@ -195,11 +192,10 @@ export default function NewConfiguratorSetup() {
             <BlockStack gap="400">
               <BlockStack gap="200">
                 <Text variant="headingMd" as="h2">
-                  Schritt 2: Preis-Modus wählen
+                  {t("configuratorNew.step2")}
                 </Text>
                 <Text variant="bodySm" tone="subdued">
-                  Der Preis-Modus bestimmt, wie Preise für konfigurierte Produkte berechnet werden.
-                  Diese Auswahl kann nachträglich nicht mehr geändert werden.
+                  {t("configuratorNew.step2Desc")}
                 </Text>
               </BlockStack>
 
@@ -284,7 +280,7 @@ export default function NewConfiguratorSetup() {
                           <div style={{ flex: "1 1 200px" }}>
                             <BlockStack gap="200">
                               <Text variant="headingXs" as="h4" tone="subdued">
-                                Anwendungsfälle
+                                {t("configuratorNew.useCases")}
                               </Text>
                               <List type="bullet">
                                 {mode.useCases.map((item, i) => (
@@ -298,7 +294,7 @@ export default function NewConfiguratorSetup() {
                           <div style={{ flex: "1 1 200px" }}>
                             <BlockStack gap="200">
                               <Text variant="headingXs" as="h4" tone="success">
-                                Features
+                                {t("configuratorNew.features")}
                               </Text>
                               <List type="bullet">
                                 {mode.features.map((item, i) => (
@@ -312,7 +308,7 @@ export default function NewConfiguratorSetup() {
                           <div style={{ flex: "1 1 200px" }}>
                             <BlockStack gap="200">
                               <Text variant="headingXs" as="h4" tone="caution">
-                                Einschränkungen
+                                {t("configuratorNew.limitations")}
                               </Text>
                               <List type="bullet">
                                 {mode.limitations.map((item, i) => (
@@ -344,7 +340,7 @@ export default function NewConfiguratorSetup() {
                 disabled={!canContinue}
                 loading={isSubmitting}
               >
-                Konfigurator erstellen & weiter
+                {t("configuratorNew.createButton")}
               </Button>
             </Form>
           </InlineStack>

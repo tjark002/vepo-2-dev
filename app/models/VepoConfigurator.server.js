@@ -1,4 +1,5 @@
 import db from "../db.server";
+import { serverT } from "../utils/i18n.server";
 
 // ============================================================================
 // Rate Limiter & Cache
@@ -234,7 +235,7 @@ export async function vepoGetConfigurations(shopDomain, graphql, skipSupplementi
       if (skipSupplementing) {
         productConfig.configurableProducts = configurableProducts.map((p) => ({
           ...p,
-          productTitle: "Laden...",
+          productTitle: serverT("common.loading"),
           productImage: null,
           productDeleted: false,
           productAlt: null,
@@ -312,7 +313,7 @@ async function vepoSupplementProductConfig(productConfig, graphql) {
       return {
         ...productConfig,
         productDeleted: true,
-        productTitle: "Fehler beim Laden",
+        productTitle: serverT("validation.loadingError"),
         productImage: null,
         productAlt: null,
       };
@@ -328,7 +329,7 @@ export async function vepoValidateProductConfig(data, dataId) {
   const errors = {};
 
   if (!data.title) {
-    errors.title = "Titel ist erforderlich";
+    errors.title = serverT("validation.titleRequired");
   }
 
   let configurableProducts = [];
@@ -343,7 +344,7 @@ export async function vepoValidateProductConfig(data, dataId) {
       throw new Error("Invalid format");
     }
   } catch (error) {
-    errors.configurableProducts = "Ungültiges Produktformat";
+    errors.configurableProducts = serverT("validation.invalidProductFormat");
     return { errors, existingConfigId: null };
   }
 
@@ -359,14 +360,14 @@ export async function vepoValidateProductConfig(data, dataId) {
 
     if (existing) {
       if (dataId && existing.optionsId !== dataId) {
-        errors.dataId = "Produkt ist bereits einem anderen Konfigurator zugeordnet";
+        errors.dataId = serverT("validation.productInOtherConfig");
       } else if (!dataId) {
         // No dataId (new config) – check if all assigned products belong to the same config
         if (detectedConfigId === null) {
           detectedConfigId = existing.optionsId;
         } else if (detectedConfigId !== existing.optionsId) {
           // Products belong to different configs – this is a real conflict
-          errors.dataId = "Produkt ist bereits einem Konfigurator zugeordnet";
+          errors.dataId = serverT("validation.productAlreadyAssigned");
           detectedConfigId = null;
         }
         // If all products share the same config, it's likely a re-save – no error

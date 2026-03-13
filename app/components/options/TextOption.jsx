@@ -4,8 +4,10 @@ import {
   Text,
   Banner,
 } from "@shopify/polaris";
+import { useTranslation } from "../../utils/i18n";
 
 export default function TextOption({ option, onChange }) {
+  const { t } = useTranslation();
   const update = (field, value) => {
     onChange({ ...option, [field]: value });
   };
@@ -13,27 +15,24 @@ export default function TextOption({ option, onChange }) {
   return (
     <BlockStack gap="400">
       <Banner tone="info">
-        <p>
-          Der eingegebene Text wird als Eigenschaft an den Warenkorb übergeben,
-          z.B. für Gravuren oder Personalisierungen.
-        </p>
+        <p>{t("options.text.bannerInfo")}</p>
       </Banner>
 
       <TextField
-        label="Placeholder"
+        label={t("options.text.placeholder")}
         value={option.placeholder || ""}
         onChange={(val) => update("placeholder", val)}
         autoComplete="off"
-        helpText="Text, der angezeigt wird, wenn das Feld leer ist"
+        helpText={t("options.text.placeholderHelp")}
       />
 
       <TextField
-        label="Maximale Zeichenanzahl"
+        label={t("options.text.maxLength")}
         type="number"
         value={String(option.maxLength || 0)}
         onChange={(val) => update("maxLength", parseInt(val) || 0)}
         autoComplete="off"
-        helpText="0 = unbegrenzt"
+        helpText={t("options.text.maxLengthHelp")}
       />
     </BlockStack>
   );

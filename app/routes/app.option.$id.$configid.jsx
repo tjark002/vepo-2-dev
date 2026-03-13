@@ -30,6 +30,7 @@ import {
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
+import { useTranslation } from "../utils/i18n";
 
 import VariantSwatchOption from "../components/options/VariantSwatchOption";
 import ColorSwatchOption from "../components/options/ColorSwatchOption";
@@ -69,18 +70,7 @@ const OPTION_TYPE_ICONS = {
   file: AttachmentIcon,
 };
 
-const OPTION_TYPE_LABELS = {
-  variantswatch: "Klassische Textkacheln",
-  dropdown: "Dropdown-Auswahl",
-  colorswatch: "Farbkacheln",
-  imageswatch: "Bildkacheln",
-  dimension: "Maße",
-  dimensionselect: "Maß-Auswahl",
-  text: "Texteingabe",
-  checkbox: "Einzelne Checkbox",
-  date: "Datum Eingabe",
-  file: "Datei",
-};
+// OPTION_TYPE_LABELS moved inside component for i18n support
 
 export const loader = async ({ request, params }) => {
   const { session } = await authenticate.admin(request);
@@ -374,6 +364,20 @@ export default function OptionEditor() {
   const navigation = useNavigation();
   const isSaving = navigation.state === "submitting";
   const shopify = useAppBridge();
+  const { t } = useTranslation();
+
+  const OPTION_TYPE_LABELS = useMemo(() => ({
+    variantswatch: t("optionTypes.variantswatch"),
+    dropdown: t("optionTypes.dropdown"),
+    colorswatch: t("optionTypes.colorswatch"),
+    imageswatch: t("optionTypes.imageswatch"),
+    dimension: t("optionTypes.dimension"),
+    dimensionselect: t("optionTypes.dimensionselect"),
+    text: t("optionTypes.text"),
+    checkbox: t("optionTypes.checkbox"),
+    date: t("optionTypes.date"),
+    file: t("optionTypes.file"),
+  }), [t]);
 
   const [formState, setFormState] = useState(() => ({
     name: option?.name || "",
@@ -488,7 +492,7 @@ export default function OptionEditor() {
         savedStateRef.current = null;
       }
       setSaveVersion((v) => v + 1); // Force isDirty re-computation
-      shopify.toast.show("Option gespeichert");
+      shopify.toast.show(t("optionEditor.saved"));
     }
   }, [actionData]);
 
@@ -536,13 +540,13 @@ export default function OptionEditor() {
 
   return (
     <Page
-      title={isNew ? "Neue Option" : `Option: ${option?.name || ""}`}
+      title={isNew ? t("optionEditor.newOption") : t("optionEditor.optionTitle", { name: option?.name || "" })}
       backAction={{
-        content: "Zurück zum Konfigurator",
+        content: t("optionEditor.backToConfigurator"),
         onAction: handleBack,
       }}
       primaryAction={{
-        content: "Speichern",
+        content: t("common.save"),
         loading: isSaving,
         onAction: handleSave,
         disabled: !isDirty && !isNew,
@@ -551,15 +555,15 @@ export default function OptionEditor() {
       {isDirty && (
         <SaveBar id="vepo-option-save-bar">
           <button variant="primary" onClick={handleSave} loading={isSaving ? "" : undefined}>
-            Speichern
+            {t("common.save")}
           </button>
-          <button onClick={handleDiscard}>Verwerfen</button>
+          <button onClick={handleDiscard}>{t("common.cancel")}</button>
         </SaveBar>
       )}
 
       {actionData?.errors && (
         <Layout.Section>
-          <Banner tone="critical" title="Fehler">
+          <Banner tone="critical" title={t("common.error")}>
             <BlockStack gap="100">
               {Object.entries(actionData.errors).map(([key, value]) => (
                 <Text key={key} as="p">{value}</Text>
@@ -580,50 +584,50 @@ export default function OptionEditor() {
               </div>
 
               <TextField
-                label="Name"
+                label={t("optionEditor.nameLabel")}
                 value={formState.name}
                 onChange={(val) => updateField("name", val)}
                 autoComplete="off"
                 requiredIndicator
                 error={actionData?.errors?.name}
-                helpText="Dieser Name wird auch als Variablenname in Preisformeln verwendet"
+                helpText={t("optionEditor.nameHelp")}
               />
 
               <TextField
-                label="Beschreibung"
+                label={t("optionEditor.descriptionLabel")}
                 value={formState.description}
                 onChange={(val) => updateField("description", val)}
                 autoComplete="off"
                 multiline={2}
-                helpText="Wird unter dem Optionsnamen auf der Produktseite angezeigt"
+                helpText={t("optionEditor.descriptionHelp")}
               />
 
               {/* Im Variantenmodus sind Auswahl-Optionen immer Pflicht, immer vorausgewählt, nie Mehrfachauswahl */}
               {priceMode === "variant-price" && ["variantswatch", "dropdown", "colorswatch", "imageswatch"].includes(formState.type) ? (
                 <Banner tone="info">
-                  <p>Im Variantenpreis-Modus ist jede Auswahl-Option automatisch ein Pflichtfeld, hat die erste Option vorausgewählt und erlaubt keine Mehrfachauswahl.</p>
+                  <p>{t("optionEditor.variantModeInfo")}</p>
                 </Banner>
               ) : (
                 <>
                   <Checkbox
-                    label="Pflichtfeld"
+                    label={t("optionEditor.required")}
                     checked={formState.required}
                     onChange={(val) => updateField("required", val)}
                   />
 
                   {["variantswatch", "dropdown", "colorswatch", "imageswatch"].includes(formState.type) && (
                     <Checkbox
-                      label="Mehrfachauswahl erlauben"
+                      label={t("optionEditor.multiSelect")}
                       checked={formState.isMultiselect}
                       onChange={(val) => updateField("isMultiselect", val)}
                     />
                   )}
                   {["variantswatch", "dropdown", "colorswatch", "imageswatch", "dimensionselect"].includes(formState.type) && (
                     <Checkbox
-                      label="Option vorauswählen"
+                      label={t("optionEditor.preselect")}
                       checked={formState.isPreselected}
                       onChange={(val) => updateField("isPreselected", val)}
-                      helpText={formState.isPreselected ? "Der Standardwert kann bei den Werten mit dem \"Standard\"-Badge festgelegt werden" : undefined}
+                      helpText={formState.isPreselected ? t("optionEditor.preselectHelp") : undefined}
                     />
                   )}
                 </>
@@ -635,12 +639,12 @@ export default function OptionEditor() {
                   <Checkbox
                     label={
                       ["variantswatch", "dropdown", "colorswatch", "imageswatch"].includes(formState.type)
-                        ? "Aufpreise pro Auswahl aktivieren"
-                        : "Hat einen Aufpreis"
+                        ? t("optionEditor.enableSurcharges")
+                        : t("optionEditor.hasSurcharge")
                     }
                     helpText={
                       ["variantswatch", "dropdown", "colorswatch", "imageswatch"].includes(formState.type)
-                        ? "Einzelne Auswahlwerte können unterschiedliche Aufpreise erhalten"
+                        ? t("optionEditor.surchargeHelp")
                         : undefined
                     }
                     checked={formState.hasAdditionalPrice}
@@ -649,7 +653,7 @@ export default function OptionEditor() {
 
                   {formState.hasAdditionalPrice && !["variantswatch", "dropdown", "colorswatch", "imageswatch"].includes(formState.type) && (
                     <TextField
-                      label="Aufpreis (€)"
+                      label={t("common.surcharge")}
                       type="number"
                       value={String(formState.additionalPrice ?? "0.00")}
                       onChange={(val) => updateField("additionalPrice", parseFloat(val) || 0)}
@@ -668,7 +672,7 @@ export default function OptionEditor() {
           <Card>
             <BlockStack gap="400">
               <Text variant="headingMd" as="h3">
-                Typ-Einstellungen
+                {t("optionEditor.typeSettings")}
               </Text>
               {renderTypeSpecific()}
             </BlockStack>
@@ -679,9 +683,9 @@ export default function OptionEditor() {
       <Modal
         open={unsavedChangesModalOpen}
         onClose={() => setUnsavedChangesModalOpen(false)}
-        title="Ungespeicherte Änderungen"
+        title={t("common.unsavedChanges")}
         primaryAction={{
-          content: "Speichern",
+          content: t("common.save"),
           onAction: () => {
             handleSave();
             setUnsavedChangesModalOpen(false);
@@ -689,19 +693,19 @@ export default function OptionEditor() {
         }}
         secondaryActions={[
           {
-            content: "Ohne Speichern verlassen",
+            content: t("common.leaveWithoutSaving"),
             destructive: true,
             onAction: () => navigate(configPath),
           },
           {
-            content: "Weiter bearbeiten",
+            content: t("common.continueEditing"),
             onAction: () => setUnsavedChangesModalOpen(false),
           },
         ]}
       >
         <Modal.Section>
           <Text as="p">
-            Du hast ungespeicherte Änderungen. Wenn du jetzt zurückgehst, gehen diese verloren.
+            {t("optionEditor.unsavedText")}
           </Text>
         </Modal.Section>
       </Modal>

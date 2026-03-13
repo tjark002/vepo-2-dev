@@ -11,8 +11,10 @@ import {
   EmptyState,
 } from "@shopify/polaris";
 import { SearchIcon } from "@shopify/polaris-icons";
+import { useTranslation } from "../utils/i18n";
 
 export default function ShopifyFilePicker({ open, onClose, onSelect }) {
+  const { t } = useTranslation();
   const fetcher = useFetcher();
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -77,15 +79,15 @@ export default function ShopifyFilePicker({ open, onClose, onSelect }) {
     <Modal
       open={open}
       onClose={onClose}
-      title="Bild aus Shopify-Dateien wählen"
+      title={t("filePicker.title")}
       primaryAction={{
-        content: "Auswählen",
+        content: t("common.select"),
         onAction: handleSelect,
         disabled: !selectedFile,
       }}
       secondaryActions={[
         {
-          content: "Abbrechen",
+          content: t("common.cancel"),
           onAction: onClose,
         },
       ]}
@@ -96,7 +98,7 @@ export default function ShopifyFilePicker({ open, onClose, onSelect }) {
           <TextField
             value={search}
             onChange={setSearch}
-            placeholder="Dateinamen suchen..."
+            placeholder={t("filePicker.searchPlaceholder")}
             prefix={<span style={{ display: "flex" }}><SearchIcon /></span>}
             autoComplete="off"
             clearButton
@@ -109,10 +111,10 @@ export default function ShopifyFilePicker({ open, onClose, onSelect }) {
             </div>
           ) : files.length === 0 ? (
             <EmptyState
-              heading="Keine Bilder gefunden"
+              heading={t("filePicker.noImages")}
               image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
             >
-              <p>Es wurden keine Bilder in deinen Shopify-Dateien gefunden.</p>
+              <p>{t("filePicker.noImagesDesc")}</p>
             </EmptyState>
           ) : (
             <>
@@ -155,7 +157,7 @@ export default function ShopifyFilePicker({ open, onClose, onSelect }) {
                   >
                     <img
                       src={file.thumbnailUrl}
-                      alt={file.alt || "Shopify Datei"}
+                      alt={file.alt || t("filePicker.shopifyFile")}
                       style={{
                         width: "100%",
                         height: "100%",
@@ -190,7 +192,7 @@ export default function ShopifyFilePicker({ open, onClose, onSelect }) {
               {pageInfo?.hasNextPage && (
                 <InlineStack align="center">
                   <Button onClick={handleLoadMore} loading={isLoading}>
-                    Mehr laden
+                    {t("common.loadMore")}
                   </Button>
                 </InlineStack>
               )}
@@ -208,7 +210,7 @@ export default function ShopifyFilePicker({ open, onClose, onSelect }) {
               <InlineStack gap="300" blockAlign="center">
                 <img
                   src={selectedFile.thumbnailUrl}
-                  alt={selectedFile.alt || "Ausgewählt"}
+                  alt={selectedFile.alt || t("common.selected")}
                   style={{
                     width: "48px",
                     height: "48px",
@@ -217,11 +219,11 @@ export default function ShopifyFilePicker({ open, onClose, onSelect }) {
                   }}
                 />
                 <BlockStack gap="050">
-                  <Text variant="bodyMd" fontWeight="semibold">Ausgewählt</Text>
+                  <Text variant="bodyMd" fontWeight="semibold">{t("common.selected")}</Text>
                   <Text variant="bodySm" tone="subdued" truncate>
                     {selectedFile.width && selectedFile.height
                       ? `${selectedFile.width} × ${selectedFile.height} px`
-                      : "Bild"}
+                      : t("common.image")}
                   </Text>
                 </BlockStack>
               </InlineStack>

@@ -3,8 +3,10 @@ import {
   TextField,
   Text,
 } from "@shopify/polaris";
+import { useTranslation } from "../../utils/i18n";
 
 export default function FileUploadOption({ option, onChange }) {
+  const { t } = useTranslation();
   const update = (field, value) => {
     onChange({ ...option, [field]: value });
   };
@@ -12,12 +14,12 @@ export default function FileUploadOption({ option, onChange }) {
   return (
     <BlockStack gap="400">
       <TextField
-        label="Erlaubte Dateitypen"
+        label={t("options.fileUpload.allowedTypes")}
         value={option.allowedFileTypes || ""}
         onChange={(val) => update("allowedFileTypes", val)}
         autoComplete="off"
-        helpText="Komma-getrennt, z.B.: .jpg,.png,.pdf - Leer lassen für alle Dateitypen"
-        placeholder=".jpg,.png,.pdf"
+        helpText={t("options.fileUpload.allowedTypesHelp")}
+        placeholder={t("options.fileUpload.allowedTypesPlaceholder")}
       />
     </BlockStack>
   );

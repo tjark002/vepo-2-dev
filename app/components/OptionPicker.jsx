@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import {
   Modal,
   BlockStack,
@@ -19,88 +20,39 @@ import {
   ListBulletedIcon,
   SelectIcon,
 } from "@shopify/polaris-icons";
+import { useTranslation } from "../utils/i18n";
 
-// Kategorie 1: Maßeingaben (nur im Preisformelmodus)
 const DIMENSION_OPTIONS = [
-  {
-    type: "dimension",
-    label: "Maßeingabe",
-    description: "Numerische Maßeingabe (Breite, Höhe, etc.)",
-    icon: HashtagIcon,
-    compatibleModes: ["price-formula"],
-  },
-  {
-    type: "dimensionselect",
-    label: "Maß-Auswahl",
-    description: "Feste numerische Werte als Kacheln (z.B. 50, 60, 70 cm)",
-    icon: HashtagIcon,
-    compatibleModes: ["price-formula"],
-  },
+  { type: "dimension", icon: HashtagIcon, compatibleModes: ["price-formula"] },
+  { type: "dimensionselect", icon: HashtagIcon, compatibleModes: ["price-formula"] },
 ];
 
-// Kategorie 2: Auswahl-Optionen
 const SELECTION_OPTIONS = [
-  {
-    type: "variantswatch",
-    label: "Klassische Textkacheln",
-    description: "Auswahl als klickbare Kacheln",
-    icon: ListBulletedIcon,
-    compatibleModes: ["price-formula", "variant-price", "info-only"],
-  },
-  {
-    type: "dropdown",
-    label: "Dropdown-Auswahl",
-    description: "Auswahl als Dropdown-Menü",
-    icon: SelectIcon,
-    compatibleModes: ["price-formula", "variant-price", "info-only"],
-  },
-  {
-    type: "colorswatch",
-    label: "Farbkacheln",
-    description: "Farbauswahl mit Farb-Swatches",
-    icon: ColorIcon,
-    compatibleModes: ["price-formula", "variant-price", "info-only"],
-  },
-  {
-    type: "imageswatch",
-    label: "Bildkacheln",
-    description: "Auswahl mit Bild-Vorschau",
-    icon: ImageIcon,
-    compatibleModes: ["price-formula", "variant-price", "info-only"],
-  },
+  { type: "variantswatch", icon: ListBulletedIcon, compatibleModes: ["price-formula", "variant-price", "info-only"] },
+  { type: "dropdown", icon: SelectIcon, compatibleModes: ["price-formula", "variant-price", "info-only"] },
+  { type: "colorswatch", icon: ColorIcon, compatibleModes: ["price-formula", "variant-price", "info-only"] },
+  { type: "imageswatch", icon: ImageIcon, compatibleModes: ["price-formula", "variant-price", "info-only"] },
 ];
 
-// Kategorie 3: Nutzereingaben
 const USER_INPUT_OPTIONS = [
-  {
-    type: "text",
-    label: "Texteingabe",
-    description: "Freitextfeld für Gravuren, Personalisierungen, etc.",
-    icon: TextFontIcon,
-    compatibleModes: ["price-formula", "variant-price", "info-only"],
-  },
-  {
-    type: "checkbox",
-    label: "Einzelne Checkbox",
-    description: "Ja/Nein Auswahl, z.B. für AGB-Zustimmung",
-    icon: CheckboxIcon,
-    compatibleModes: ["price-formula", "variant-price", "info-only"],
-  },
-  {
-    type: "date",
-    label: "Datum Eingabe",
-    description: "Datumsauswahl mit optionalen Grenzen",
-    icon: CalendarIcon,
-    compatibleModes: ["price-formula", "variant-price", "info-only"],
-  },
-  {
-    type: "file",
-    label: "Datei",
-    description: "Datei-Upload mit Typ-Beschränkung",
-    icon: AttachmentIcon,
-    compatibleModes: ["price-formula", "variant-price", "info-only"],
-  },
+  { type: "text", icon: TextFontIcon, compatibleModes: ["price-formula", "variant-price", "info-only"] },
+  { type: "checkbox", icon: CheckboxIcon, compatibleModes: ["price-formula", "variant-price", "info-only"] },
+  { type: "date", icon: CalendarIcon, compatibleModes: ["price-formula", "variant-price", "info-only"] },
+  { type: "file", icon: AttachmentIcon, compatibleModes: ["price-formula", "variant-price", "info-only"] },
 ];
+
+const DESC_KEYS = {
+  dimension: "dimensionDesc",
+  dimensionselect: "dimensionSelectDesc",
+  variantswatch: "variantSwatchDesc",
+  dropdown: "dropdownDesc",
+  colorswatch: "colorSwatchDesc",
+  imageswatch: "imageSwatchDesc",
+  text: "textDesc",
+  checkbox: "checkboxDesc",
+  date: "dateDesc",
+  file: "fileDesc",
+};
 
 function OptionCard({ optionType, isCompatible, onSelect, onClose }) {
   return (
@@ -158,23 +110,34 @@ function OptionSection({ title, options, currentPriceMode, onSelect, onClose }) 
 }
 
 export default function OptionPicker({ open, onClose, onSelect, currentPriceMode }) {
+  const { t } = useTranslation();
   const showDimensionSection = currentPriceMode === "price-formula";
+
+  const addLabels = (opts) =>
+    opts.map((o) => ({
+      ...o,
+      label: t(`optionTypes.${o.type}`),
+      description: t(`optionPicker.${DESC_KEYS[o.type]}`),
+    }));
+
+  const dimensionOptions = useMemo(() => addLabels(DIMENSION_OPTIONS), [t]);
+  const selectionOptions = useMemo(() => addLabels(SELECTION_OPTIONS), [t]);
+  const userInputOptions = useMemo(() => addLabels(USER_INPUT_OPTIONS), [t]);
 
   return (
     <Modal
       open={open}
       onClose={onClose}
-      title="Optionstyp wählen"
+      title={t("optionPicker.title")}
       large
     >
       <Modal.Section>
         <BlockStack gap="500">
-          {/* Kategorie 1: Maßeingaben - nur im Preisformelmodus */}
           {showDimensionSection && (
             <>
               <OptionSection
-                title="Maßeingaben"
-                options={DIMENSION_OPTIONS}
+                title={t("optionPicker.dimensionSection")}
+                options={dimensionOptions}
                 currentPriceMode={currentPriceMode}
                 onSelect={onSelect}
                 onClose={onClose}
@@ -183,10 +146,9 @@ export default function OptionPicker({ open, onClose, onSelect, currentPriceMode
             </>
           )}
 
-          {/* Kategorie 2: Auswahl-Optionen */}
           <OptionSection
-            title="Auswahl-Optionen"
-            options={SELECTION_OPTIONS}
+            title={t("optionPicker.selectionSection")}
+            options={selectionOptions}
             currentPriceMode={currentPriceMode}
             onSelect={onSelect}
             onClose={onClose}
@@ -194,10 +156,9 @@ export default function OptionPicker({ open, onClose, onSelect, currentPriceMode
 
           <Divider />
 
-          {/* Kategorie 3: Nutzereingaben */}
           <OptionSection
-            title="Nutzereingaben"
-            options={USER_INPUT_OPTIONS}
+            title={t("optionPicker.userInputSection")}
+            options={userInputOptions}
             currentPriceMode={currentPriceMode}
             onSelect={onSelect}
             onClose={onClose}

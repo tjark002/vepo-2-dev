@@ -13,6 +13,7 @@ import {
 } from "@shopify/polaris";
 import { LockIcon, RefreshIcon } from "@shopify/polaris-icons";
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
+import { useTranslation } from "../utils/i18n";
 
 // Format price: remove leading zeros, ensure 2 decimal places
 const formatPrice = (value) => {
@@ -27,6 +28,7 @@ export default function VirtualVariantsTable({
   onBasePriceChange,
   options,
 }) {
+  const { t } = useTranslation();
   const [sortColumn, setSortColumn] = useState(null);
   const [sortDirection, setSortDirection] = useState("ascending");
   const prevOptionsRef = useRef(null);
@@ -77,7 +79,7 @@ export default function VirtualVariantsTable({
           values = [];
         }
         return values.map((v) => ({
-          name: v.name || v.label || v.value || "Unbekannt",
+          name: v.name || v.label || v.value || t("common.unknown"),
           surcharge: parseFloat(v.surcharge) || 0,
         }));
       });
@@ -243,21 +245,21 @@ export default function VirtualVariantsTable({
   }, [swatchOptions]);
 
   const OPTION_TYPE_LABELS = {
-    variantswatch: "Klassische Textkacheln",
-    dropdown: "Dropdown-Auswahl",
-    colorswatch: "Farbkacheln",
-    imageswatch: "Bildkacheln",
+    variantswatch: t("optionTypes.variantswatch"),
+    dropdown: t("optionTypes.dropdown"),
+    colorswatch: t("optionTypes.colorswatch"),
+    imageswatch: t("optionTypes.imageswatch"),
   };
 
   const rows = displayVariants.map((variant) => [
     <InlineStack key={variant.variantHandle + "-name"} gap="200" blockAlign="center" wrap={false}>
       <Text as="span">{variant.variantHandle}</Text>
       {variant.manualPrice && (
-        <Tooltip content="Manuell angepasst – wird bei automatischen Neu-Berechnungen nicht überschrieben">
+        <Tooltip content={t("virtualVariants.manualTooltip")}>
           <Badge tone="attention" size="small">
             <InlineStack gap="100" blockAlign="center">
               <Icon source={LockIcon} />
-              <span>Manueller Preis</span>
+              <span>{t("virtualVariants.manualPrice")}</span>
             </InlineStack>
           </Badge>
         </Tooltip>
@@ -265,13 +267,13 @@ export default function VirtualVariantsTable({
     </InlineStack>,
     <InlineStack key={variant.variantHandle + "-price"} gap="200" blockAlign="center" wrap={false} align="end">
       {variant.manualPrice && (
-        <Tooltip content={`Zurücksetzen auf ${(variant._calculatedPrice ?? variant.variantPrice)?.toFixed(2) || 0}€`}>
+        <Tooltip content={t("virtualVariants.resetTooltip", { price: (variant._calculatedPrice ?? variant.variantPrice)?.toFixed(2) || 0 })}>
           <Button
             icon={RefreshIcon}
             variant="plain"
             size="slim"
             onClick={() => handleResetPrice(variant.variantHandle)}
-            accessibilityLabel="Preis zurücksetzen"
+            accessibilityLabel={t("virtualVariants.resetPrice")}
           />
         </Tooltip>
       )}
@@ -293,7 +295,7 @@ export default function VirtualVariantsTable({
       <BlockStack gap="400">
         <InlineStack align="space-between" blockAlign="center">
           <Text variant="headingMd" as="h3">
-            Variantenpreise
+            {t("virtualVariants.title")}
           </Text>
           {virtualVariants.length > 0 && (
             <Button
@@ -302,23 +304,20 @@ export default function VirtualVariantsTable({
               variant="plain"
               size="slim"
             >
-              Alle neu berechnen
+              {t("virtualVariants.recalculateAll")}
             </Button>
           )}
         </InlineStack>
 
         <Banner tone="info">
-          <p>
-            Die Preise werden automatisch aus dem Basispreis + Aufpreise der Optionen berechnet.
-            Wenn du einen Preis manuell änderst, bleibt er auch bei automatischen Neu-Berechnungen erhalten.
-          </p>
+          <p>{t("virtualVariants.priceInfo")}</p>
         </Banner>
 
         <InlineStack gap="300" blockAlign="end">
           <div style={{ width: "150px" }}>
             <TextField
               type="number"
-              label="Basispreis (€)"
+              label={t("virtualVariants.basePrice")}
               value={String(basePrice ?? "0.00")}
               onChange={(val) => {
                 onBasePriceChange(val);
@@ -329,7 +328,7 @@ export default function VirtualVariantsTable({
           </div>
           {virtualVariants.length === 0 && (
             <Button onClick={handleGenerate} variant="primary">
-              Varianten generieren
+              {t("virtualVariants.generate")}
             </Button>
           )}
         </InlineStack>
@@ -337,34 +336,34 @@ export default function VirtualVariantsTable({
         {emptySwatchOptions.length > 0 && (
           <Banner tone="warning">
             <p>
-              Folgende Auswahl-Optionen haben noch keine Werte:{" "}
-              <strong>{emptySwatchOptions.map((o) => `„${o.name || "Unbenannt"}" (${OPTION_TYPE_LABELS[o.type] || o.type})`).join(", ")}</strong>.
-              Varianten können erst generiert werden, wenn alle Auswahl-Optionen mindestens einen Wert haben.
+              {t("virtualVariants.emptySwatchWarning", {
+                options: emptySwatchOptions
+                  .map((o) => `„${o.name || t("common.unnamed")}" (${OPTION_TYPE_LABELS[o.type] || o.type})`)
+                  .join(", "),
+              })}
             </p>
           </Banner>
         )}
 
         {virtualVariants.length === 0 && emptySwatchOptions.length === 0 ? (
           <Banner tone="info">
-            <p>
-              Noch keine Varianten. Klicke auf "Varianten generieren" oder speichere eine Auswahl-Option, um die Kombinationen automatisch zu erstellen.
-            </p>
+            <p>{t("virtualVariants.noVariants")}</p>
           </Banner>
         ) : (
           <>
             <InlineStack gap="200">
               <Text variant="bodySm" tone="subdued">
-                {virtualVariants.length} Variante(n)
+                {t("virtualVariants.variantCount", { count: virtualVariants.length })}
               </Text>
               {manualCount > 0 && (
                 <Text variant="bodySm" tone="subdued">
-                  · {manualCount} manuell angepasst
+                  · {t("virtualVariants.manualCount", { count: manualCount })}
                 </Text>
               )}
             </InlineStack>
             <DataTable
               columnContentTypes={["text", "numeric"]}
-              headings={["Kombination", "Preis"]}
+              headings={[t("virtualVariants.combination"), t("virtualVariants.price")]}
               rows={rows}
               sortable={[true, true]}
               defaultSortDirection="ascending"

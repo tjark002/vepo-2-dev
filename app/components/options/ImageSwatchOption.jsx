@@ -11,6 +11,7 @@ import {
 import { DeleteIcon, ChevronUpIcon, ChevronDownIcon, ImageIcon } from "@shopify/polaris-icons";
 import { useCallback, useState } from "react";
 import ShopifyFilePicker from "../ShopifyFilePicker";
+import { useTranslation } from "../../utils/i18n";
 
 const formatPrice = (value) => {
   const num = parseFloat(value) || 0;
@@ -18,6 +19,7 @@ const formatPrice = (value) => {
 };
 
 export default function ImageSwatchOption({ option, onChange }) {
+  const { t } = useTranslation();
   const values = Array.isArray(option.values) ? option.values : [];
   const hasExplicitDefault = values.some((v) => v.isDefault);
   const [filePickerOpen, setFilePickerOpen] = useState(false);
@@ -118,7 +120,7 @@ export default function ImageSwatchOption({ option, onChange }) {
                 justifyContent: "center",
                 flexShrink: 0,
               }}
-              title="Bild aus Shopify-Dateien wählen"
+              title={t("options.imageSwatch.chooseFromShopify")}
             >
               {value.imageUrl ? (
                 <img
@@ -139,7 +141,7 @@ export default function ImageSwatchOption({ option, onChange }) {
 
             <BlockStack gap="200" style={{ flex: 1, minWidth: "150px", gap: "10px" }}>
               <TextField
-                label="Variantenname"
+                label={t("options.imageSwatch.variantName")}
                 value={value.name}
                 onChange={(val) => updateValue(index, "name", val)}
                 autoComplete="off"
@@ -147,7 +149,7 @@ export default function ImageSwatchOption({ option, onChange }) {
               <InlineStack gap="200" blockAlign="end">
                 <div style={{ flex: 1 }}>
                   <TextField
-                    label="Bild-URL"
+                    label={t("options.imageSwatch.imageUrl")}
                     value={value.imageUrl}
                     onChange={(val) => updateValue(index, "imageUrl", val)}
                     autoComplete="off"
@@ -160,7 +162,7 @@ export default function ImageSwatchOption({ option, onChange }) {
             {option.hasAdditionalPrice && (
               <div style={{ width: "120px" }}>
                 <TextField
-                  label="Aufpreis (€)"
+                  label={t("common.surcharge")}
                   type="number"
                   value={String(value.surcharge ?? "0.00")}
                   onChange={(val) => updateValue(index, "surcharge", val)}
@@ -174,12 +176,12 @@ export default function ImageSwatchOption({ option, onChange }) {
                 type="button"
                 onClick={() => setAsDefault(index)}
                 style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
-                title={isEffectiveDefault ? "Standardwert" : "Als Standardwert setzen"}
+                title={isEffectiveDefault ? t("common.defaultValue") : t("common.setAsDefault")}
               >
-                <Badge tone={isEffectiveDefault ? "success" : undefined}>Standard</Badge>
+                <Badge tone={isEffectiveDefault ? "success" : undefined}>{t("common.standard")}</Badge>
               </button>
             )}
-            <Button icon={DeleteIcon} variant="plain" tone="critical" onClick={() => removeValue(index)} accessibilityLabel="Löschen" />
+            <Button icon={DeleteIcon} variant="plain" tone="critical" onClick={() => removeValue(index)} accessibilityLabel={t("options.imageSwatch.deleteValue")} />
           </InlineStack>
         </Card>
         );

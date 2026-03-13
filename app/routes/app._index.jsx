@@ -24,8 +24,9 @@ import {
   DuplicateIcon,
   EditIcon,
 } from "@shopify/polaris-icons";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { authenticate } from "../shopify.server";
+import { useTranslation } from "../utils/i18n";
 import db from "../db.server";
 import {
   vepoGetConfigurations,
@@ -195,13 +196,6 @@ export const action = async ({ request }) => {
   return json({ error: "Unknown action" }, { status: 400 });
 };
 
-const PRICE_MODE_LABELS = {
-  "price-formula": "Preisformel",
-  "variant-price": "Variantenpreis",
-  "info-only": "Personalisierung ohne Preisänderung",
-  default: "Personalisierung ohne Preisänderung",
-};
-
 const PRICE_MODE_STATUS = {
   "price-formula": "info",
   "variant-price": "warning",
@@ -215,6 +209,14 @@ export default function DashboardPage() {
   const submit = useSubmit();
   const navigation = useNavigation();
   const isLoading = navigation.state !== "idle";
+  const { t } = useTranslation();
+
+  const PRICE_MODE_LABELS = useMemo(() => ({
+    "price-formula": t("priceModes.priceFormula"),
+    "variant-price": t("priceModes.variantPrice"),
+    "info-only": t("priceModes.infoOnly"),
+    default: t("priceModes.infoOnly"),
+  }), [t]);
 
   const [deleteModal, setDeleteModal] = useState({ open: false, config: null });
 
@@ -285,7 +287,7 @@ export default function DashboardPage() {
                   e.stopPropagation();
                   navigate(`/app/configurator/${config.id}`);
                 }}
-                accessibilityLabel="Bearbeiten"
+                accessibilityLabel={t("common.edit")}
               />
               <Button
                 icon={DuplicateIcon}
@@ -294,7 +296,7 @@ export default function DashboardPage() {
                   e.stopPropagation();
                   handleDuplicate(config.id);
                 }}
-                accessibilityLabel="Duplizieren"
+                accessibilityLabel={t("common.duplicate")}
               />
               <Button
                 icon={DeleteIcon}
@@ -304,7 +306,7 @@ export default function DashboardPage() {
                   e.stopPropagation();
                   openDeleteModal(config);
                 }}
-                accessibilityLabel="Löschen"
+                accessibilityLabel={t("common.delete")}
               />
             </InlineStack>
           </IndexTable.Cell>
@@ -314,25 +316,22 @@ export default function DashboardPage() {
 
   const emptyState = (
     <EmptyState
-      heading="Noch keine Konfiguratoren"
+      heading={t("configuratorList.noConfigurators")}
       action={{
-        content: "Ersten Konfigurator erstellen",
+        content: t("configuratorList.createFirst"),
         onAction: () => navigate("/app/configurator/new"),
       }}
       image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
     >
-      <p>
-        Erstelle einen Produktkonfigurator, um deinen Kunden personalisierbare
-        Produkte anzubieten.
-      </p>
+      <p>{t("configuratorList.createDescription")}</p>
     </EmptyState>
   );
 
   return (
     <Page
-      title="Produktkonfiguratoren"
+      title={t("configuratorList.pageTitle")}
       primaryAction={{
-        content: "Neuer Konfigurator",
+        content: t("configuratorList.newConfigurator"),
         onAction: () => navigate("/app/configurator/new"),
       }}
     >
@@ -342,16 +341,16 @@ export default function DashboardPage() {
             {configurations && configurations.length > 0 ? (
               <IndexTable
                 resourceName={{
-                  singular: "Konfigurator",
-                  plural: "Konfiguratoren",
+                  singular: t("configuratorList.configurator"),
+                  plural: t("configuratorList.configuratorPlural"),
                 }}
                 itemCount={configurations.length}
                 headings={[
-                  { title: "Name" },
-                  { title: "Produkte" },
-                  { title: "Optionen" },
-                  { title: "Preis-Modus" },
-                  { title: "Aktionen" },
+                  { title: t("common.name") },
+                  { title: t("common.products") },
+                  { title: t("common.options") },
+                  { title: t("common.priceMode") },
+                  { title: t("common.actions") },
                 ]}
                 selectable={false}
                 loading={isLoading}
@@ -368,15 +367,15 @@ export default function DashboardPage() {
       <Modal
         open={deleteModal.open}
         onClose={closeDeleteModal}
-        title="Konfigurator löschen?"
+        title={t("configuratorList.deleteTitle")}
         primaryAction={{
-          content: "Endgültig löschen",
+          content: t("configuratorList.deleteConfirm"),
           destructive: true,
           onAction: handleDelete,
         }}
         secondaryActions={[
           {
-            content: "Abbrechen",
+            content: t("common.cancel"),
             onAction: closeDeleteModal,
           },
         ]}
@@ -384,14 +383,10 @@ export default function DashboardPage() {
         <Modal.Section>
           <BlockStack gap="200">
             <Text as="p">
-              Bist du sicher, dass du den Konfigurator{" "}
-              <Text as="span" fontWeight="bold">
-                "{deleteModal.config?.title}"
-              </Text>{" "}
-              löschen möchtest?
+              {t("configuratorList.deleteMessage", { title: deleteModal.config?.title })}
             </Text>
             <Banner tone="critical">
-              <p>Diese Aktion kann nicht rückgängig gemacht werden.</p>
+              <p>{t("configuratorList.deleteWarning")}</p>
             </Banner>
           </BlockStack>
         </Modal.Section>

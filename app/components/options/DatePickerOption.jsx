@@ -6,8 +6,10 @@ import {
   InlineStack,
   Banner,
 } from "@shopify/polaris";
+import { useTranslation } from "../../utils/i18n";
 
 export default function DatePickerOption({ option, onChange }) {
+  const { t } = useTranslation();
   const update = (field, value) => {
     onChange({ ...option, [field]: value });
   };
@@ -15,15 +17,15 @@ export default function DatePickerOption({ option, onChange }) {
   return (
     <BlockStack gap="400">
       <Checkbox
-        label="Alle Daten erlauben"
+        label={t("options.datePicker.allowAllDates")}
         checked={option.allowAllDates !== false}
         onChange={(val) => update("allowAllDates", val)}
-        helpText="Wenn aktiviert, können Kunden jedes Datum wählen"
+        helpText={t("options.datePicker.allowAllDatesHelp")}
       />
 
       {!option.allowAllDates && (
         <Banner tone="info">
-          <p>Lege die Grenzen fest, in denen Kunden ein Datum wählen können.</p>
+          <p>{t("options.datePicker.dateRangeInfo")}</p>
         </Banner>
       )}
 
@@ -31,7 +33,7 @@ export default function DatePickerOption({ option, onChange }) {
         <InlineStack gap="300" wrap>
           <div style={{ flex: 1, minWidth: "200px" }}>
             <TextField
-              label="Frühestes Datum"
+              label={t("options.datePicker.minDate")}
               type="date"
               value={option.minDate || ""}
               onChange={(val) => update("minDate", val)}
@@ -40,7 +42,7 @@ export default function DatePickerOption({ option, onChange }) {
           </div>
           <div style={{ flex: 1, minWidth: "200px" }}>
             <TextField
-              label="Spätestes Datum"
+              label={t("options.datePicker.maxDate")}
               type="date"
               value={option.maxDate || ""}
               onChange={(val) => update("maxDate", val)}
