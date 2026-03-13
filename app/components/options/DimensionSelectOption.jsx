@@ -7,6 +7,7 @@ import {
   Card,
   Select,
   Banner,
+  Badge,
 } from "@shopify/polaris";
 import { DeleteIcon, ChevronUpIcon, ChevronDownIcon } from "@shopify/polaris-icons";
 import { useCallback } from "react";
@@ -25,6 +26,7 @@ const UNITS = [
 
 export default function DimensionSelectOption({ option, onChange }) {
   const values = Array.isArray(option.values) ? option.values : [];
+  const hasExplicitDefault = values.some((v) => v.isDefault);
 
   const update = (field, value) => {
     onChange({ ...option, [field]: value });
@@ -65,6 +67,14 @@ export default function DimensionSelectOption({ option, onChange }) {
     [option, values, onChange]
   );
 
+  const setAsDefault = useCallback(
+    (index) => {
+      const newValues = values.map((v, i) => ({ ...v, isDefault: i === index }));
+      onChange({ ...option, values: newValues });
+    },
+    [option, values, onChange]
+  );
+
   return (
     <BlockStack gap="400">
       <Banner tone="info">
@@ -86,38 +96,51 @@ export default function DimensionSelectOption({ option, onChange }) {
         Werte
       </Text>
 
-      {values.map((value, index) => (
-        <Card key={index}>
-          <InlineStack gap="200" blockAlign="start" wrap>
-            <InlineStack gap="100">
-              <Button icon={ChevronUpIcon} variant="plain" size="slim" disabled={index === 0} onClick={() => moveValue(index, -1)} />
-              <Button icon={ChevronDownIcon} variant="plain" size="slim" disabled={index === values.length - 1} onClick={() => moveValue(index, 1)} />
+      {values.map((value, index) => {
+        const isEffectiveDefault = value.isDefault || (!hasExplicitDefault && index === 0);
+        return (
+          <Card key={index}>
+            <InlineStack gap="200" blockAlign="start" wrap>
+              <InlineStack gap="100">
+                <Button icon={ChevronUpIcon} variant="plain" size="slim" disabled={index === 0} onClick={() => moveValue(index, -1)} />
+                <Button icon={ChevronDownIcon} variant="plain" size="slim" disabled={index === values.length - 1} onClick={() => moveValue(index, 1)} />
+              </InlineStack>
+              <div style={{ flex: 1, minWidth: "100px" }}>
+                <TextField
+                  label="Anzeigetext"
+                  value={value.name}
+                  onChange={(val) => updateValue(index, "name", val)}
+                  autoComplete="off"
+                  placeholder="z.B. Klein, Mittel, Groß"
+                  helpText="Optional - wenn leer, wird der Wert mit Einheit angezeigt"
+                />
+              </div>
+              <div style={{ width: "120px" }}>
+                <TextField
+                  label="Wert"
+                  type="number"
+                  value={String(value.numericValue || "")}
+                  onChange={(val) => updateValue(index, "numericValue", val)}
+                  autoComplete="off"
+                  placeholder="z.B. 50"
+                  requiredIndicator
+                />
+              </div>
+              {option.isPreselected && (
+                <button
+                  type="button"
+                  onClick={() => setAsDefault(index)}
+                  style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
+                  title={isEffectiveDefault ? "Standardwert" : "Als Standardwert setzen"}
+                >
+                  <Badge tone={isEffectiveDefault ? "success" : undefined}>Standard</Badge>
+                </button>
+              )}
+              <Button icon={DeleteIcon} variant="plain" tone="critical" onClick={() => removeValue(index)} />
             </InlineStack>
-            <div style={{ flex: 1, minWidth: "100px" }}>
-              <TextField
-                label="Anzeigetext"
-                value={value.name}
-                onChange={(val) => updateValue(index, "name", val)}
-                autoComplete="off"
-                placeholder="z.B. Klein, Mittel, Groß"
-                helpText="Optional - wenn leer, wird der Wert mit Einheit angezeigt"
-              />
-            </div>
-            <div style={{ width: "120px" }}>
-              <TextField
-                label="Wert"
-                type="number"
-                value={String(value.numericValue || "")}
-                onChange={(val) => updateValue(index, "numericValue", val)}
-                autoComplete="off"
-                placeholder="z.B. 50"
-                requiredIndicator
-              />
-            </div>
-            <Button icon={DeleteIcon} variant="plain" tone="critical" onClick={() => removeValue(index)} />
-          </InlineStack>
-        </Card>
-      ))}
+          </Card>
+        );
+      })}
 
       <Button onClick={addValue}>Wert hinzufügen</Button>
     </BlockStack>

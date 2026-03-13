@@ -6,6 +6,7 @@ import {
   InlineStack,
   Card,
   Thumbnail,
+  Badge,
 } from "@shopify/polaris";
 import { DeleteIcon, ChevronUpIcon, ChevronDownIcon, ImageIcon } from "@shopify/polaris-icons";
 import { useCallback, useState } from "react";
@@ -18,6 +19,7 @@ const formatPrice = (value) => {
 
 export default function ImageSwatchOption({ option, onChange }) {
   const values = Array.isArray(option.values) ? option.values : [];
+  const hasExplicitDefault = values.some((v) => v.isDefault);
   const [filePickerOpen, setFilePickerOpen] = useState(false);
   const [editingIndex, setEditingIndex] = useState(null);
 
@@ -56,6 +58,14 @@ export default function ImageSwatchOption({ option, onChange }) {
     [option, values, onChange]
   );
 
+  const setAsDefault = useCallback(
+    (index) => {
+      const newValues = values.map((v, i) => ({ ...v, isDefault: i === index }));
+      onChange({ ...option, values: newValues });
+    },
+    [option, values, onChange]
+  );
+
   const openFilePicker = useCallback((index) => {
     setEditingIndex(index);
     setFilePickerOpen(true);
@@ -81,7 +91,9 @@ export default function ImageSwatchOption({ option, onChange }) {
         Bildoptionen
       </Text>
 
-      {values.map((value, index) => (
+      {values.map((value, index) => {
+        const isEffectiveDefault = value.isDefault || (!hasExplicitDefault && index === 0);
+        return (
         <Card key={index}>
           <InlineStack gap="300" blockAlign="center" wrap>
             <InlineStack gap="100">
@@ -157,10 +169,21 @@ export default function ImageSwatchOption({ option, onChange }) {
                 />
               </div>
             )}
+            {option.isPreselected && (
+              <button
+                type="button"
+                onClick={() => setAsDefault(index)}
+                style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
+                title={isEffectiveDefault ? "Standardwert" : "Als Standardwert setzen"}
+              >
+                <Badge tone={isEffectiveDefault ? "success" : undefined}>Standard</Badge>
+              </button>
+            )}
             <Button icon={DeleteIcon} variant="plain" tone="critical" onClick={() => removeValue(index)} accessibilityLabel="Löschen" />
           </InlineStack>
         </Card>
-      ))}
+        );
+      })}
 
       <Button onClick={addValue}>Bild hinzufügen</Button>
 

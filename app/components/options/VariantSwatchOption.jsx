@@ -6,6 +6,7 @@ import {
   InlineStack,
   Card,
   Icon,
+  Badge,
 } from "@shopify/polaris";
 import { DeleteIcon, ChevronUpIcon, ChevronDownIcon } from "@shopify/polaris-icons";
 import { useCallback } from "react";
@@ -18,6 +19,7 @@ const formatPrice = (value) => {
 
 export default function VariantSwatchOption({ option, onChange }) {
   const values = Array.isArray(option.values) ? option.values : [];
+  const hasExplicitDefault = values.some((v) => v.isDefault);
 
   const addValue = useCallback(() => {
     onChange({
@@ -54,43 +56,64 @@ export default function VariantSwatchOption({ option, onChange }) {
     [option, values, onChange]
   );
 
+  const setAsDefault = useCallback(
+    (index) => {
+      const newValues = values.map((v, i) => ({ ...v, isDefault: i === index }));
+      onChange({ ...option, values: newValues });
+    },
+    [option, values, onChange]
+  );
+
   return (
     <BlockStack gap="400">
       <Text variant="headingSm" as="h4">
         Varianten
       </Text>
 
-      {values.map((value, index) => (
-        <Card key={index}>
-          <InlineStack gap="200" blockAlign="start" wrap>
-            <InlineStack gap="100">
-              <Button icon={ChevronUpIcon} variant="plain" size="slim" disabled={index === 0} onClick={() => moveValue(index, -1)} />
-              <Button icon={ChevronDownIcon} variant="plain" size="slim" disabled={index === values.length - 1} onClick={() => moveValue(index, 1)} />
-            </InlineStack>
-            <div style={{ flex: 1 }}>
-              <TextField
-                label="Name"
-                value={value.name}
-                onChange={(val) => updateValue(index, "name", val)}
-                autoComplete="off"
-              />
-            </div>
-            {option.hasAdditionalPrice && (
-              <div style={{ width: "120px" }}>
+      {values.map((value, index) => {
+        const isEffectiveDefault = value.isDefault || (!hasExplicitDefault && index === 0);
+        return (
+          <Card key={index}>
+            <InlineStack gap="200" blockAlign="start" wrap>
+              <InlineStack gap="100">
+                <Button icon={ChevronUpIcon} variant="plain" size="slim" disabled={index === 0} onClick={() => moveValue(index, -1)} />
+                <Button icon={ChevronDownIcon} variant="plain" size="slim" disabled={index === values.length - 1} onClick={() => moveValue(index, 1)} />
+              </InlineStack>
+              <div style={{ flex: 1 }}>
                 <TextField
-                  label="Aufpreis (€)"
-                  type="number"
-                  value={String(value.surcharge ?? "0.00")}
-                  onChange={(val) => updateValue(index, "surcharge", val)}
-                  onBlur={() => updateValue(index, "surcharge", formatPrice(value.surcharge))}
+                  label="Name"
+                  value={value.name}
+                  onChange={(val) => updateValue(index, "name", val)}
                   autoComplete="off"
                 />
               </div>
-            )}
-            <Button icon={DeleteIcon} variant="plain" tone="critical" onClick={() => removeValue(index)} />
-          </InlineStack>
-        </Card>
-      ))}
+              {option.hasAdditionalPrice && (
+                <div style={{ width: "120px" }}>
+                  <TextField
+                    label="Aufpreis (€)"
+                    type="number"
+                    value={String(value.surcharge ?? "0.00")}
+                    onChange={(val) => updateValue(index, "surcharge", val)}
+                    onBlur={() => updateValue(index, "surcharge", formatPrice(value.surcharge))}
+                    autoComplete="off"
+                  />
+                </div>
+              )}
+              {option.isPreselected && (
+                <button
+                  type="button"
+                  onClick={() => setAsDefault(index)}
+                  style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
+                  title={isEffectiveDefault ? "Standardwert" : "Als Standardwert setzen"}
+                >
+                  <Badge tone={isEffectiveDefault ? "success" : undefined}>Standard</Badge>
+                </button>
+              )}
+              <Button icon={DeleteIcon} variant="plain" tone="critical" onClick={() => removeValue(index)} />
+            </InlineStack>
+          </Card>
+        );
+      })}
 
       <Button onClick={addValue}>Variante hinzufügen</Button>
     </BlockStack>

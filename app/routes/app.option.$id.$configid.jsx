@@ -612,18 +612,19 @@ export default function OptionEditor() {
                   />
 
                   {["variantswatch", "dropdown", "colorswatch", "imageswatch"].includes(formState.type) && (
-                    <>
-                      <Checkbox
-                        label="Mehrfachauswahl erlauben"
-                        checked={formState.isMultiselect}
-                        onChange={(val) => updateField("isMultiselect", val)}
-                      />
-                      <Checkbox
-                        label="Erste Option vorauswählen"
-                        checked={formState.isPreselected}
-                        onChange={(val) => updateField("isPreselected", val)}
-                      />
-                    </>
+                    <Checkbox
+                      label="Mehrfachauswahl erlauben"
+                      checked={formState.isMultiselect}
+                      onChange={(val) => updateField("isMultiselect", val)}
+                    />
+                  )}
+                  {["variantswatch", "dropdown", "colorswatch", "imageswatch", "dimensionselect"].includes(formState.type) && (
+                    <Checkbox
+                      label="Option vorauswählen"
+                      checked={formState.isPreselected}
+                      onChange={(val) => updateField("isPreselected", val)}
+                      helpText={formState.isPreselected ? "Der Standardwert kann bei den Werten mit dem \"Standard\"-Badge festgelegt werden" : undefined}
+                    />
                   )}
                 </>
               )}

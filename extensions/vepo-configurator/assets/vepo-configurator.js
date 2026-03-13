@@ -464,12 +464,13 @@
       container.appendChild(btn);
     });
 
-    // Preselect first if enabled
     if (option.isPreselected && values.length > 0) {
-      const firstBtn = container.querySelector(".vepo_button_swatch");
-      if (firstBtn) {
-        firstBtn.classList.add("vepo_selected");
-        vepoUpdateSelectedOptions(option, values[0].name, values[0].surcharge);
+      const defaultVal = values.find((v) => v.isDefault) || values[0];
+      const defaultIndex = values.indexOf(defaultVal);
+      const buttons = container.querySelectorAll(".vepo_button_swatch");
+      if (buttons[defaultIndex]) {
+        buttons[defaultIndex].classList.add("vepo_selected");
+        vepoUpdateSelectedOptions(option, defaultVal.name, defaultVal.surcharge);
       }
     }
 
@@ -505,8 +506,9 @@
       }
       optionEl.dataset.surcharge = val.surcharge || "0";
       
-      // Preselect first if enabled
-      if (option.isPreselected && index === 0) {
+      const defaultVal = values.find((v) => v.isDefault);
+      const isDefault = defaultVal ? val === defaultVal : index === 0;
+      if (option.isPreselected && isDefault) {
         optionEl.selected = true;
       }
       
@@ -521,9 +523,9 @@
 
     container.appendChild(select);
 
-    // Trigger initial selection if preselected
     if (option.isPreselected && values.length > 0) {
-      vepoUpdateSelectedOptions(option, values[0].name, values[0].surcharge);
+      const defaultVal = values.find((v) => v.isDefault) || values[0];
+      vepoUpdateSelectedOptions(option, defaultVal.name, defaultVal.surcharge);
     }
 
     return container;
@@ -552,8 +554,13 @@
     });
 
     if (option.isPreselected && values.length > 0) {
-      container.querySelector(".vepo_color_swatch")?.classList.add("vepo_selected");
-      vepoUpdateSelectedOptions(option, values[0].name, values[0].surcharge);
+      const defaultVal = values.find((v) => v.isDefault) || values[0];
+      const defaultIndex = values.indexOf(defaultVal);
+      const swatches = container.querySelectorAll(".vepo_color_swatch");
+      if (swatches[defaultIndex]) {
+        swatches[defaultIndex].classList.add("vepo_selected");
+      }
+      vepoUpdateSelectedOptions(option, defaultVal.name, defaultVal.surcharge);
     }
 
     return container;
@@ -594,8 +601,13 @@
     });
 
     if (option.isPreselected && values.length > 0) {
-      container.querySelector(".vepo_image_swatch")?.classList.add("vepo_selected");
-      vepoUpdateSelectedOptions(option, values[0].name, values[0].surcharge);
+      const defaultVal = values.find((v) => v.isDefault) || values[0];
+      const defaultIndex = values.indexOf(defaultVal);
+      const swatches = container.querySelectorAll(".vepo_image_swatch");
+      if (swatches[defaultIndex]) {
+        swatches[defaultIndex].classList.add("vepo_selected");
+      }
+      vepoUpdateSelectedOptions(option, defaultVal.name, defaultVal.surcharge);
     }
 
     return container;
@@ -678,12 +690,13 @@
       container.appendChild(btn);
     });
 
-    // Preselect first if enabled
     if (option.isPreselected && values.length > 0) {
-      const firstBtn = container.querySelector(".vepo_button_swatch");
-      if (firstBtn) {
-        firstBtn.classList.add("vepo_selected");
-        vepoUpdateSelectedOptions(option, values[0].numericValue);
+      const defaultVal = values.find((v) => v.isDefault) || values[0];
+      const defaultIndex = values.indexOf(defaultVal);
+      const buttons = container.querySelectorAll(".vepo_button_swatch");
+      if (buttons[defaultIndex]) {
+        buttons[defaultIndex].classList.add("vepo_selected");
+        vepoUpdateSelectedOptions(option, defaultVal.numericValue);
       }
     }
 
