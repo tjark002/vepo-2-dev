@@ -1029,23 +1029,24 @@
 
       const optionName = optionEl.dataset.vepoOptionName;
       const selectedOpt = vepoSelectedOptions[optionName];
-      const selectedValue = selectedOpt ? selectedOpt.value : "";
+      const selectedValue = String(selectedOpt ? selectedOpt.value : "");
+      const conditionValue = String(condition.value);
 
       switch (condition.operator) {
         case "equals":
-          if (selectedValue !== condition.value) return false;
+          if (selectedValue !== conditionValue) return false;
           break;
         case "not-equals":
-          if (selectedValue === condition.value) return false;
+          if (selectedValue === conditionValue) return false;
           break;
         case "greater-than":
-          if (parseFloat(selectedValue) <= parseFloat(condition.value)) return false;
+          if (parseFloat(selectedValue) <= parseFloat(conditionValue)) return false;
           break;
         case "less-than":
-          if (parseFloat(selectedValue) >= parseFloat(condition.value)) return false;
+          if (parseFloat(selectedValue) >= parseFloat(conditionValue)) return false;
           break;
         case "contains":
-          if (!selectedValue.includes(condition.value)) return false;
+          if (!selectedValue.includes(conditionValue)) return false;
           break;
       }
     }
@@ -1065,20 +1066,26 @@
 
     for (const rule of sortedRules) {
       const allConditionsMet = vepoCheckConditions(rule.conditions);
-      
-      // Determine the visibility based on rule logic
-      // If conditions are met: use rule.show
-      // If conditions are not met: use inverse of rule.show
-      const shouldShow = allConditionsMet ? rule.show : !rule.show;
 
-      if (rule.targetValueId) {
-        // Swatch-level rule
-        const key = "swatch-" + rule.targetOptionId + "-" + rule.targetValueId;
-        visibilityState[key] = { show: shouldShow, priority: rule.priority || 0 };
-      } else {
-        // Option-level rule
-        const key = "option-" + rule.targetOptionId;
-        visibilityState[key] = { show: shouldShow, priority: rule.priority || 0 };
+      // Only apply the rule when its conditions are met.
+      // When conditions aren't met, the rule has no effect — this allows
+      // multiple rules targeting the same element to work independently.
+      if (!allConditionsMet) continue;
+
+      const key = rule.targetValueId
+        ? "swatch-" + rule.targetOptionId + "-" + rule.targetValueId
+        : "option-" + rule.targetOptionId;
+
+      visibilityState[key] = { show: rule.show, priority: rule.priority || 0 };
+    }
+
+    // Reset all ruled elements to visible, then apply matched rules
+    for (const rule of rules) {
+      const key = rule.targetValueId
+        ? "swatch-" + rule.targetOptionId + "-" + rule.targetValueId
+        : "option-" + rule.targetOptionId;
+      if (!(key in visibilityState)) {
+        visibilityState[key] = { show: true, priority: 0 };
       }
     }
 
@@ -1093,11 +1100,10 @@
       } else if (key.startsWith("swatch-")) {
         const parts = key.replace("swatch-", "").split("-");
         const optionId = parts[0];
-        const valueId = parts.slice(1).join("-"); // valueId might contain dashes
+        const valueId = parts.slice(1).join("-");
         
         const optionEl = document.getElementById("vepo-option-" + optionId);
         if (optionEl) {
-          // Find the swatch button by data attribute or text content
           const swatches = optionEl.querySelectorAll(".vepo_button_swatch, .vepo_color_swatch, .vepo_image_swatch, .vepo_dropdown option");
           swatches.forEach((swatch) => {
             const swatchValue = swatch.dataset.value || swatch.dataset.numericValue || swatch.textContent?.trim() || swatch.value;

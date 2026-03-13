@@ -26,7 +26,7 @@ export default function ImageSwatchOption({ option, onChange }) {
   const addValue = useCallback(() => {
     onChange({
       ...option,
-      values: [...values, { name: "", imageUrl: "", surcharge: "0.00" }],
+      values: [...values, { id: "v_" + Date.now(), name: "", imageUrl: "", surcharge: "0.00" }],
     });
   }, [option, values, onChange]);
 

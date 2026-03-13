@@ -35,7 +35,7 @@ export default function DimensionSelectOption({ option, onChange }) {
   const addValue = useCallback(() => {
     onChange({
       ...option,
-      values: [...values, { name: "", numericValue: "" }],
+      values: [...values, { id: "v_" + Date.now(), name: "", numericValue: "" }],
     });
   }, [option, values, onChange]);
 

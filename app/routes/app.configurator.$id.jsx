@@ -228,8 +228,9 @@ export const loader = async ({ request, params }) => {
     configuration.options = configuration.options.map((opt) => ({
       ...opt,
       additionalPrice: parseFloat(opt.additionalPrice || 0).toFixed(2),
-      values: Array.isArray(opt.values) ? opt.values.map((v) => ({
+      values: Array.isArray(opt.values) ? opt.values.map((v, idx) => ({
         ...v,
+        id: v.id || ("v_" + opt.id + "_" + idx),
         surcharge: v.surcharge !== undefined ? parseFloat(v.surcharge || 0).toFixed(2) : "0.00",
       })) : [],
     }));
@@ -1128,6 +1129,8 @@ export default function ConfiguratorEditor() {
       let updatedOptions = state.options;
       let updatedOptionOrder = state.optionOrder;
 
+      let updatedRules = state.rules;
+
       if (Object.keys(idMap).length > 0) {
         // Calculate new options with real IDs
         updatedOptions = state.options.map((opt) => {
@@ -1143,9 +1146,20 @@ export default function ConfiguratorEditor() {
         // Calculate new option order with real IDs
         updatedOptionOrder = state.optionOrder.map((id) => idMap[id] || id);
 
+        // Update rules with real option IDs
+        updatedRules = state.rules.map((rule) => ({
+          ...rule,
+          targetOptionId: idMap[rule.targetOptionId] || rule.targetOptionId,
+          conditions: (rule.conditions || []).map((cond) => ({
+            ...cond,
+            optionId: idMap[cond.optionId] || cond.optionId,
+          })),
+        }));
+
         // Update state with new IDs
         setOptions(updatedOptions);
         setOptionOrder(updatedOptionOrder);
+        setRules(updatedRules);
       }
 
       // Reset dirty state with the saved snapshot values (including any ID updates)
@@ -1153,6 +1167,7 @@ export default function ConfiguratorEditor() {
         ...state,
         options: updatedOptions,
         optionOrder: updatedOptionOrder,
+        rules: updatedRules,
       });
       
       // Clear the saved snapshot

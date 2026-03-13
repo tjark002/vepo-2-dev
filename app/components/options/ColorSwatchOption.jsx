@@ -23,7 +23,7 @@ export default function ColorSwatchOption({ option, onChange }) {
   const addValue = useCallback(() => {
     onChange({
       ...option,
-      values: [...values, { name: "", color: "#000000", surcharge: "0.00" }],
+      values: [...values, { id: "v_" + Date.now(), name: "", color: "#000000", surcharge: "0.00" }],
     });
   }, [option, values, onChange]);
 

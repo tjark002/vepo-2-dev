@@ -47,20 +47,29 @@ export default function RulesEditor({ rules, onChange, options }) {
 
   const addRule = useCallback(() => {
     const newPriority = rules.length;
+    const firstOpt = options[0];
+    const firstOptId = firstOpt?.id || firstOpt?.tempId || "";
+    let initialValue = "";
+    if (firstOpt && SWATCH_TYPES.includes(firstOpt.type)) {
+      const vals = getOptionValues(firstOpt);
+      if (vals[0]) {
+        initialValue = vals[0].name || vals[0].numericValue || String(0);
+      }
+    }
     onChange([
       ...rules,
       {
         tempId: "rule_" + Date.now(),
         show: true,
-        targetOptionId: options[0]?.id || options[0]?.tempId || "",
+        targetOptionId: firstOptId,
         targetValueId: null,
         priority: newPriority,
         conditions: [
           {
             tempId: "cond_" + Date.now(),
-            optionId: options[0]?.id || options[0]?.tempId || "",
+            optionId: firstOptId,
             operator: "equals",
-            value: "",
+            value: initialValue,
           },
         ],
       },
@@ -104,6 +113,15 @@ export default function RulesEditor({ rules, onChange, options }) {
 
   const addCondition = useCallback(
     (ruleIndex) => {
+      const firstOpt = options[0];
+      const firstOptId = firstOpt?.id || firstOpt?.tempId || "";
+      let initialValue = "";
+      if (firstOpt && SWATCH_TYPES.includes(firstOpt.type)) {
+        const vals = getOptionValues(firstOpt);
+        if (vals[0]) {
+          initialValue = vals[0].name || vals[0].numericValue || String(0);
+        }
+      }
       const updated = [...rules];
       updated[ruleIndex] = {
         ...updated[ruleIndex],
@@ -111,9 +129,9 @@ export default function RulesEditor({ rules, onChange, options }) {
           ...updated[ruleIndex].conditions,
           {
             tempId: "cond_" + Date.now(),
-            optionId: options[0]?.id || options[0]?.tempId || "",
+            optionId: firstOptId,
             operator: "equals",
-            value: "",
+            value: initialValue,
           },
         ],
       };
@@ -140,12 +158,21 @@ export default function RulesEditor({ rules, onChange, options }) {
       const conditions = [...updated[ruleIndex].conditions];
       conditions[condIndex] = { ...conditions[condIndex], [field]: value };
       if (field === "optionId") {
-        conditions[condIndex].value = "";
+        const opt = optionsById[value];
+        if (opt && SWATCH_TYPES.includes(opt.type)) {
+          const vals = getOptionValues(opt);
+          const firstVal = vals[0];
+          conditions[condIndex].value = firstVal
+            ? (firstVal.name || firstVal.numericValue || String(0))
+            : "";
+        } else {
+          conditions[condIndex].value = "";
+        }
       }
       updated[ruleIndex] = { ...updated[ruleIndex], conditions };
       onChange(updated);
     },
-    [rules, onChange]
+    [rules, onChange, optionsById]
   );
 
   const getValueChoicesForOption = useCallback((optionId) => {

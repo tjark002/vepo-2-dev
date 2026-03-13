@@ -134,11 +134,13 @@ export async function vepoGetConfiguration(id, graphql) {
 
     if (!productConfig) return null;
 
-    // Parse option values JSON safely
-    productConfig.options = productConfig.options.map((option) => ({
-      ...option,
-      values: option.values ? vepoSafeJsonParse(option.values, []) : [],
-    }));
+    productConfig.options = productConfig.options.map((option) => {
+      const values = option.values ? vepoSafeJsonParse(option.values, []) : [];
+      return {
+        ...option,
+        values: values.map((v, idx) => ({ ...v, id: v.id || ("v_" + option.id + "_" + idx) })),
+      };
+    });
 
     // Format rules for frontend consumption (same as vepoGetConfigurations)
     // The frontend expects: { targetOptionId, targetValueId, show, priority, conditions: [{ optionId, operator, value }] }
@@ -199,11 +201,13 @@ export async function vepoGetConfigurations(shopDomain, graphql, skipSupplementi
 
     const response = [];
     for (const productConfig of productConfigs) {
-      // Parse option values JSON safely (same as vepoGetConfiguration singular)
-      productConfig.options = productConfig.options.map((option) => ({
-        ...option,
-        values: option.values ? vepoSafeJsonParse(option.values, []) : [],
-      }));
+      productConfig.options = productConfig.options.map((option) => {
+        const values = option.values ? vepoSafeJsonParse(option.values, []) : [];
+        return {
+          ...option,
+          values: values.map((v, idx) => ({ ...v, id: v.id || ("v_" + option.id + "_" + idx) })),
+        };
+      });
 
       // Format rules for frontend consumption
       // The frontend expects: { targetOptionId, targetValueId, show, priority, conditions: [{ optionId, operator, value }] }

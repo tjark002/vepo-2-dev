@@ -24,7 +24,7 @@ export default function VariantSwatchOption({ option, onChange }) {
   const addValue = useCallback(() => {
     onChange({
       ...option,
-      values: [...values, { name: "", variantId: "", price: "0.00", surcharge: "0.00" }],
+      values: [...values, { id: "v_" + Date.now(), name: "", variantId: "", price: "0.00", surcharge: "0.00" }],
     });
   }, [option, values, onChange]);
 
