@@ -156,7 +156,6 @@
     }
 
     console.log("[Vepo] Matched config:", matchedConfig.title);
-
     vepoConfig = matchedConfig;
 
     // Order options
@@ -539,7 +538,16 @@
       const swatch = document.createElement("div");
       swatch.className = "vepo_color_swatch";
       swatch.dataset.value = val.id || val.name;
-      swatch.style.backgroundColor = val.color || "#000";
+      swatch.style.cssText = `
+        background-color: ${val.color || "#000"};
+        width: 40px; height: 40px; min-width: 40px; min-height: 40px;
+        border-radius: 50%; border: 2px solid #ddd;
+        cursor: pointer; display: inline-block; flex-shrink: 0;
+        visibility: visible; opacity: 1; overflow: visible;
+        position: relative; z-index: 1;
+        box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1);
+        transition: all 0.2s;
+      `;
       swatch.title = val.name;
       swatch.addEventListener("click", () => {
         if (option.isMultiselect) {
@@ -943,16 +951,17 @@
       let formula = config.priceFormula;
 
       for (const [name, opt] of Object.entries(vepoSelectedOptions)) {
+        const regex = new RegExp("\\[" + name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\]", "g");
         if (opt.type === "dimension" || opt.type === "dimensionselect") {
-          const regex = new RegExp("\\[" + name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\]", "g");
-          formula = formula.replace(regex, opt.value || "0");
+          formula = formula.replace(regex, "(" + (opt.value || "0") + ")");
         } else if (config.surchargesInFormula) {
-          const regex = new RegExp("\\[" + name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\]", "g");
-          formula = formula.replace(regex, String(opt.surcharge || 0));
+          formula = formula.replace(regex, "(" + String(opt.surcharge || 0) + ")");
         }
       }
 
-      // Clean formula and translate custom functions to JavaScript
+      formula = formula.replace(/\)\(/g, ")*(");
+      formula = formula.replace(/(\d)\(/g, "$1*(");
+      formula = formula.replace(/\)(\d)/g, ")*$1");
       formula = formula.replace(/,/g, ".").replace(/x/gi, "*").replace(/÷/g, "/").replace(/%/g, "/100");
       // Translate: √(...) → Math.sqrt(...), ² → **2
       formula = formula.replace(/√\(/g, "Math.sqrt(");
@@ -968,9 +977,7 @@
         price = 0;
       }
 
-      if (config.surchargesInFormula) {
-        // Surcharges are already substituted as formula variables — don't add on top
-      } else if (config.formulaModeSurcharges) {
+      if (!config.surchargesInFormula) {
         for (const opt of Object.values(vepoSelectedOptions)) {
           if (opt.surcharge > 0) {
             price += opt.surcharge;

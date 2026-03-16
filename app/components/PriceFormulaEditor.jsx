@@ -19,6 +19,16 @@ const formatPrice = (value) => {
   return num.toFixed(2);
 };
 
+const cursorStyle = {
+  display: "inline-block",
+  width: "2px",
+  height: "1.2em",
+  backgroundColor: "var(--p-color-text)",
+  verticalAlign: "text-bottom",
+  animation: "vepo-blink 1s step-end infinite",
+  marginInline: "1px",
+};
+
 const variableTagStyle = {
   display: "inline-flex",
   alignItems: "center",
@@ -127,6 +137,8 @@ export default function PriceFormulaEditor({
   const [isDragOver, setIsDragOver] = useState(false);
   const [dragSourceIndex, setDragSourceIndex] = useState(null);
   const [dropTargetIndex, setDropTargetIndex] = useState(null);
+  const [cursorPos, setCursorPos] = useState((formula || "").length);
+  const [isFocused, setIsFocused] = useState(true);
   const editorRef = useRef(null);
   const containerRef = useRef(null);
 
@@ -173,14 +185,33 @@ export default function PriceFormulaEditor({
     return Math.max(0, count);
   }, [formula]);
 
-  const insertAtEnd = useCallback((value) => {
-    onChange((formula || "") + value);
-  }, [formula, onChange]);
+  const tokenBoundaries = useMemo(() => {
+    const bounds = [];
+    let offset = 0;
+    for (const token of tokens) {
+      bounds.push({ start: offset, end: offset + token.value.length, token });
+      offset += token.value.length;
+    }
+    return bounds;
+  }, [tokens]);
+
+  const clampedCursor = Math.min(cursorPos, (formula || "").length);
+
+  const insertAtCursor = useCallback((value) => {
+    const f = formula || "";
+    const pos = Math.min(cursorPos, f.length);
+    onChange(f.slice(0, pos) + value + f.slice(pos));
+    setCursorPos(pos + value.length);
+  }, [formula, cursorPos, onChange]);
 
   const removeTokenAtIndex = useCallback((index) => {
     const newTokens = tokens.filter((_, i) => i !== index);
+    const removedBound = tokenBoundaries[index];
     onChange(tokensToFormula(newTokens));
-  }, [tokens, onChange]);
+    if (removedBound && cursorPos > removedBound.start) {
+      setCursorPos(Math.max(removedBound.start, cursorPos - removedBound.token.value.length));
+    }
+  }, [tokens, tokenBoundaries, cursorPos, onChange]);
 
   const handleEditorDragOver = useCallback((e) => {
     e.preventDefault();
@@ -247,13 +278,13 @@ export default function PriceFormulaEditor({
         });
         onChange(tokensToFormula(newTokens));
       } else {
-        insertAtEnd(plainData);
+        insertAtCursor(plainData);
       }
     }
     
     setDragSourceIndex(null);
     setDropTargetIndex(null);
-  }, [tokens, dropTargetIndex, onChange, insertAtEnd]);
+  }, [tokens, dropTargetIndex, onChange, insertAtCursor]);
 
   const handleEditorDragEnd = useCallback(() => {
     setDragSourceIndex(null);
@@ -262,33 +293,56 @@ export default function PriceFormulaEditor({
 
   const handleClear = () => {
     onChange("");
+    setCursorPos(0);
   };
 
   const handleBackspace = () => {
-    if (!formula) return;
-    
-    for (const varName of variableNames) {
-      const varPattern = `[${varName}]`;
-      if (formula.endsWith(varPattern)) {
-        onChange(formula.slice(0, -varPattern.length));
+    if (!formula || clampedCursor === 0) return;
+
+    for (const bound of tokenBoundaries) {
+      if (bound.end === clampedCursor && bound.token.type === "variable") {
+        onChange(formula.slice(0, bound.start) + formula.slice(bound.end));
+        setCursorPos(bound.start);
         return;
       }
     }
-    
-    if (formula.endsWith("√(")) {
-      onChange(formula.slice(0, -2));
+
+    const before = formula.slice(0, clampedCursor);
+    if (before.endsWith("√(")) {
+      onChange(before.slice(0, -2) + formula.slice(clampedCursor));
+      setCursorPos(clampedCursor - 2);
       return;
     }
-    
-    onChange(formula.slice(0, -1));
+
+    onChange(formula.slice(0, clampedCursor - 1) + formula.slice(clampedCursor));
+    setCursorPos(clampedCursor - 1);
   };
+
+  const moveCursor = useCallback((direction) => {
+    const f = formula || "";
+    if (direction < 0 && clampedCursor === 0) return;
+    if (direction > 0 && clampedCursor >= f.length) return;
+
+    for (const bound of tokenBoundaries) {
+      if (direction < 0 && bound.end === clampedCursor && bound.token.type === "variable") {
+        setCursorPos(bound.start);
+        return;
+      }
+      if (direction > 0 && bound.start === clampedCursor && bound.token.type === "variable") {
+        setCursorPos(bound.end);
+        return;
+      }
+    }
+
+    setCursorPos(clampedCursor + direction);
+  }, [formula, clampedCursor, tokenBoundaries]);
 
   const handleKeyDown = (e) => {
     const key = e.key;
     
     if (/^[0-9]$/.test(key)) {
       e.preventDefault();
-      insertAtEnd(key);
+      insertAtCursor(key);
       return;
     }
     
@@ -308,7 +362,7 @@ export default function PriceFormulaEditor({
     
     if (keyMap[key]) {
       e.preventDefault();
-      insertAtEnd(keyMap[key]);
+      insertAtCursor(keyMap[key]);
       return;
     }
     
@@ -323,6 +377,30 @@ export default function PriceFormulaEditor({
       handleClear();
       return;
     }
+
+    if (key === "ArrowLeft") {
+      e.preventDefault();
+      moveCursor(-1);
+      return;
+    }
+
+    if (key === "ArrowRight") {
+      e.preventDefault();
+      moveCursor(1);
+      return;
+    }
+
+    if (key === "Home") {
+      e.preventDefault();
+      setCursorPos(0);
+      return;
+    }
+
+    if (key === "End") {
+      e.preventDefault();
+      setCursorPos((formula || "").length);
+      return;
+    }
   };
 
   useEffect(() => {
@@ -333,11 +411,9 @@ export default function PriceFormulaEditor({
 
     let testFormula = formula;
     options.forEach((o) => {
+      const re = new RegExp("\\[" + o.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\]", "g");
       if (o.type === "dimension") {
-        testFormula = testFormula.replace(
-          new RegExp("\\[" + o.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\]", "g"),
-          String(o.default || 10)
-        );
+        testFormula = testFormula.replace(re, "(" + String(o.default || 10) + ")");
       } else if (o.type === "dimensionselect") {
         let testValue = 10;
         try {
@@ -346,10 +422,7 @@ export default function PriceFormulaEditor({
             testValue = values[0].numericValue;
           }
         } catch (e) {}
-        testFormula = testFormula.replace(
-          new RegExp("\\[" + o.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\]", "g"),
-          String(testValue)
-        );
+        testFormula = testFormula.replace(re, "(" + String(testValue) + ")");
       } else if (surchargesInFormula && SWATCH_TYPES.includes(o.type)) {
         let testValue = 0;
         try {
@@ -358,13 +431,13 @@ export default function PriceFormulaEditor({
             testValue = parseFloat(values[0].surcharge) || 0;
           }
         } catch (e) {}
-        testFormula = testFormula.replace(
-          new RegExp("\\[" + o.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\]", "g"),
-          String(testValue)
-        );
+        testFormula = testFormula.replace(re, "(" + String(testValue) + ")");
       }
     });
 
+    testFormula = testFormula.replace(/\)\(/g, ")*(");
+    testFormula = testFormula.replace(/(\d)\(/g, "$1*(");
+    testFormula = testFormula.replace(/\)(\d)/g, ")*$1");
     testFormula = testFormula.replace(/,/g, ".").replace(/x/gi, "*").replace(/÷/g, "/").replace(/%/g, "/100");
     testFormula = testFormula.replace(/√\(/g, "Math.sqrt(");
     testFormula = testFormula.replace(/²/g, "**2");
@@ -382,21 +455,63 @@ export default function PriceFormulaEditor({
     }
   }, [formula, options, surchargesInFormula]);
 
+  const handleEditorClick = useCallback((e) => {
+    containerRef.current?.focus();
+    setIsFocused(true);
+
+    const charEl = e.target.closest("[data-char-offset]");
+    if (charEl) {
+      const offset = parseInt(charEl.dataset.charOffset, 10);
+      const rect = charEl.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      setCursorPos(clickX > rect.width / 2 ? offset + 1 : offset);
+      return;
+    }
+
+    const varEl = e.target.closest("[data-token-index]");
+    if (varEl && varEl.dataset.tokenType === "variable") {
+      const idx = parseInt(varEl.dataset.tokenIndex, 10);
+      const bound = tokenBoundaries[idx];
+      if (bound) {
+        const rect = varEl.getBoundingClientRect();
+        const clickX = e.clientX - rect.left;
+        setCursorPos(clickX > rect.width / 2 ? bound.end : bound.start);
+      }
+      return;
+    }
+
+    setCursorPos((formula || "").length);
+  }, [tokenBoundaries, formula]);
+
+  const cursorElement = <span key="cursor" style={cursorStyle} />;
+
   const renderTokens = () => {
     if (tokens.length === 0) {
       return (
-        <span style={{ color: "#999", fontStyle: "italic" }}>
-          {t("priceFormulaEditor.formulaPlaceholder")}
-        </span>
+        <>
+          {cursorElement}
+          <span style={{ color: "#999", fontStyle: "italic" }}>
+            {t("priceFormulaEditor.formulaPlaceholder")}
+          </span>
+        </>
       );
     }
 
-    return tokens.map((token, index) => {
+    const elements = [];
+    let charOffset = 0;
+
+    for (let index = 0; index < tokens.length; index++) {
+      const token = tokens[index];
       const isDropTarget = dropTargetIndex === index;
       const isDragging = dragSourceIndex === index;
-      
+      const tokenStart = charOffset;
+
+      if (clampedCursor === tokenStart) {
+        elements.push(cursorElement);
+      }
+
       if (token.type === "variable") {
-        return (
+        elements.push(
           <span key={`${token.value}-${index}`} style={{ position: "relative" }}>
             {isDropTarget && (
               <span style={{
@@ -418,40 +533,76 @@ export default function PriceFormulaEditor({
             />
           </span>
         );
+        charOffset += token.value.length;
+      } else {
+        const chars = token.value.split("");
+        const textParts = [];
+        for (let ci = 0; ci < chars.length; ci++) {
+          const absOffset = tokenStart + ci;
+          if (ci > 0 && clampedCursor === absOffset) {
+            elements.push(
+              <span
+                key={`text-${index}-pre-${ci}`}
+                data-token-index={index}
+                data-token-type="text"
+                style={{ fontFamily: "monospace", position: "relative" }}
+              >
+                {isDropTarget && ci === 0 && (
+                  <span style={{
+                    position: "absolute", left: 0, top: 0, bottom: 0,
+                    width: "3px", backgroundColor: "#008060", borderRadius: "2px",
+                  }} />
+                )}
+                {textParts.map((tp, tpi) => (
+                  <span key={tpi} data-char-offset={tp.offset}>{tp.char}</span>
+                ))}
+              </span>
+            );
+            textParts.length = 0;
+            elements.push(cursorElement);
+          }
+          textParts.push({ char: chars[ci], offset: absOffset });
+        }
+        if (textParts.length > 0) {
+          elements.push(
+            <span
+              key={`text-${index}-rest`}
+              data-token-index={index}
+              data-token-type="text"
+              style={{ fontFamily: "monospace", position: "relative" }}
+            >
+              {isDropTarget && (
+                <span style={{
+                  position: "absolute", left: 0, top: 0, bottom: 0,
+                  width: "3px", backgroundColor: "#008060", borderRadius: "2px",
+                }} />
+              )}
+              {textParts.map((tp, tpi) => (
+                <span key={tpi} data-char-offset={tp.offset}>{tp.char}</span>
+              ))}
+            </span>
+          );
+        }
+        charOffset += token.value.length;
       }
-      return (
-        <span 
-          key={`text-${index}`}
-          data-token-index={index}
-          data-token-type="text"
-          style={{ 
-            fontFamily: "monospace",
-            position: "relative",
-          }}
-        >
-          {isDropTarget && (
-            <span style={{
-              position: "absolute",
-              left: 0,
-              top: 0,
-              bottom: 0,
-              width: "3px",
-              backgroundColor: "#008060",
-              borderRadius: "2px",
-            }} />
-          )}
-          {token.value}
-        </span>
-      );
-    });
+    }
+
+    if (clampedCursor >= charOffset) {
+      elements.push(cursorElement);
+    }
+
+    return elements;
   };
 
   return (
     <Card>
+      <style>{`@keyframes vepo-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } } .vepo-calc-grid .Polaris-Button { min-height: 44px; }`}</style>
       <div 
         ref={containerRef}
         tabIndex={0}
         onKeyDown={handleKeyDown}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
         style={{ outline: "none" }}
       >
       <BlockStack gap="400">
@@ -472,7 +623,7 @@ export default function PriceFormulaEditor({
               onDragStart={handleEditorDragStart}
               onDrop={handleEditorDrop}
               onDragEnd={handleEditorDragEnd}
-              onClick={() => containerRef.current?.focus()}
+              onClick={handleEditorClick}
               style={{
                 flex: 1,
                 minHeight: "44px",
@@ -504,101 +655,108 @@ export default function PriceFormulaEditor({
           </InlineStack>
         </BlockStack>
 
-        <InlineStack gap="400" align="start" wrap={false}>
-          <div style={{ 
-            display: "grid", 
-            gridTemplateColumns: "repeat(4, 50px)", 
-            gap: "8px"
+        <div
+          onMouseDown={(e) => e.preventDefault()}
+          style={{
+            display: "flex",
+            gap: "24px",
+            justifyContent: "center",
+            alignItems: "start",
+            flexWrap: "wrap",
+          }}
+        >
+          <div className="vepo-calc-grid" style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(4, 64px)",
+            gap: "6px",
           }}>
-            <div style={{ gridColumn: "span 2" }}>
-              <Button onClick={handleClear} tone="critical" fullWidth>C</Button>
-            </div>
-            <div style={{ gridColumn: "span 2" }}>
-              <Button onClick={handleBackspace} fullWidth>
-                <span style={{ fontSize: "18px" }}>⌫</span>
-              </Button>
-            </div>
+            <Button onClick={() => moveCursor(-1)} variant="secondary">◀</Button>
+            <Button onClick={() => moveCursor(1)} variant="secondary">▶</Button>
+            <Button onClick={handleClear} tone="critical">C</Button>
+            <Button onClick={handleBackspace}>
+              <span style={{ fontSize: "18px" }}>⌫</span>
+            </Button>
             
-            <Button onClick={() => insertAtEnd("(")} variant="secondary">(</Button>
-            <Button onClick={() => insertAtEnd(")")} variant="secondary">)</Button>
-            <Button onClick={() => insertAtEnd("√(")} variant="secondary">√</Button>
-            <Button onClick={() => insertAtEnd("²")} variant="secondary">
+            <Button onClick={() => insertAtCursor("(")} variant="secondary">(</Button>
+            <Button onClick={() => insertAtCursor(")")} variant="secondary">)</Button>
+            <Button onClick={() => insertAtCursor("√(")} variant="secondary">√</Button>
+            <Button onClick={() => insertAtCursor("²")} variant="secondary">
               <span>x<sup>2</sup></span>
             </Button>
             
-            <Button onClick={() => insertAtEnd("7")}>7</Button>
-            <Button onClick={() => insertAtEnd("8")}>8</Button>
-            <Button onClick={() => insertAtEnd("9")}>9</Button>
-            <Button onClick={() => insertAtEnd(" / ")} variant="primary">/</Button>
+            <Button onClick={() => insertAtCursor("7")}>7</Button>
+            <Button onClick={() => insertAtCursor("8")}>8</Button>
+            <Button onClick={() => insertAtCursor("9")}>9</Button>
+            <Button onClick={() => insertAtCursor(" / ")} variant="primary">/</Button>
             
-            <Button onClick={() => insertAtEnd("4")}>4</Button>
-            <Button onClick={() => insertAtEnd("5")}>5</Button>
-            <Button onClick={() => insertAtEnd("6")}>6</Button>
-            <Button onClick={() => insertAtEnd(" * ")} variant="primary">×</Button>
+            <Button onClick={() => insertAtCursor("4")}>4</Button>
+            <Button onClick={() => insertAtCursor("5")}>5</Button>
+            <Button onClick={() => insertAtCursor("6")}>6</Button>
+            <Button onClick={() => insertAtCursor(" * ")} variant="primary">×</Button>
             
-            <Button onClick={() => insertAtEnd("1")}>1</Button>
-            <Button onClick={() => insertAtEnd("2")}>2</Button>
-            <Button onClick={() => insertAtEnd("3")}>3</Button>
-            <Button onClick={() => insertAtEnd(" - ")} variant="primary">−</Button>
+            <Button onClick={() => insertAtCursor("1")}>1</Button>
+            <Button onClick={() => insertAtCursor("2")}>2</Button>
+            <Button onClick={() => insertAtCursor("3")}>3</Button>
+            <Button onClick={() => insertAtCursor(" - ")} variant="primary">−</Button>
             
-            <Button onClick={() => insertAtEnd("0")}>0</Button>
-            <Button onClick={() => insertAtEnd(".")}>.</Button>
-            <Button onClick={() => insertAtEnd("-")} variant="secondary">(−)</Button>
-            <Button onClick={() => insertAtEnd(" + ")} variant="primary">+</Button>
+            <Button onClick={() => insertAtCursor("0")}>0</Button>
+            <Button onClick={() => insertAtCursor(".")}>.</Button>
+            <Button onClick={() => insertAtCursor("-")} variant="secondary">(−)</Button>
+            <Button onClick={() => insertAtCursor(" + ")} variant="primary">+</Button>
           </div>
 
-          <BlockStack gap="200">
-            <Text variant="bodySm" fontWeight="semibold">
-              {t("priceFormulaEditor.variables")}
-            </Text>
-            {hasVariables ? (
-              <BlockStack gap="200">
-                {variableButtons.map((btn) => (
-                  <div
-                    key={btn.value}
-                    draggable
-                    onDragStart={(e) => {
-                      e.dataTransfer.setData("text/plain", btn.value);
-                      e.dataTransfer.effectAllowed = "copy";
-                    }}
-                    onClick={() => insertAtEnd(btn.value)}
-                    style={{
-                      padding: "6px 12px",
-                      backgroundColor: "#f6f6f7",
-                      color: "#202223",
-                      border: "1px solid #8c9196",
-                      borderRadius: "6px",
-                      cursor: "grab",
-                      fontSize: "13px",
-                      fontWeight: "500",
-                      textAlign: "center",
-                      userSelect: "none",
-                      transition: "all 0.15s ease",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = "#e4e5e7";
-                      e.currentTarget.style.borderColor = "#6d7175";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = "#f6f6f7";
-                      e.currentTarget.style.borderColor = "#8c9196";
-                    }}
-                  >
-                    {btn.name}
-                  </div>
-                ))}
-              </BlockStack>
-            ) : (
-              <Box padding="200" background="bg-surface-secondary" borderRadius="200">
+          <div style={{ minWidth: "120px" }}>
+            <BlockStack gap="200">
+              <Text variant="bodySm" fontWeight="semibold">
+                {t("priceFormulaEditor.variables")}
+              </Text>
+              {hasVariables ? (
+                <>
+                  {variableButtons.map((btn) => (
+                    <div
+                      key={btn.value}
+                      draggable
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData("text/plain", btn.value);
+                        e.dataTransfer.effectAllowed = "copy";
+                      }}
+                      onClick={() => insertAtCursor(btn.value)}
+                      style={{
+                        padding: "8px 14px",
+                        backgroundColor: "#f6f6f7",
+                        color: "#202223",
+                        border: "1px solid #8c9196",
+                        borderRadius: "6px",
+                        cursor: "grab",
+                        fontSize: "13px",
+                        fontWeight: "500",
+                        textAlign: "center",
+                        userSelect: "none",
+                        transition: "all 0.15s ease",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = "#e4e5e7";
+                        e.currentTarget.style.borderColor = "#6d7175";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = "#f6f6f7";
+                        e.currentTarget.style.borderColor = "#8c9196";
+                      }}
+                    >
+                      {btn.name}
+                    </div>
+                  ))}
+                </>
+              ) : (
                 <Text variant="bodySm" tone="subdued">
                   {surchargesInFormula
                     ? t("priceFormulaEditor.noVariablesSurcharges")
                     : t("priceFormulaEditor.noVariables")}
                 </Text>
-              </Box>
-            )}
-          </BlockStack>
-        </InlineStack>
+              )}
+            </BlockStack>
+          </div>
+        </div>
 
         <BlockStack gap="200">
           <Checkbox

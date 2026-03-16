@@ -7,9 +7,11 @@ import {
   Card,
   Thumbnail,
   Badge,
+  Spinner,
 } from "@shopify/polaris";
 import { DeleteIcon, ChevronUpIcon, ChevronDownIcon, ImageIcon } from "@shopify/polaris-icons";
 import { useCallback, useState } from "react";
+import { useFetcher } from "@remix-run/react";
 import ShopifyFilePicker from "../ShopifyFilePicker";
 import { useTranslation } from "../../utils/i18n";
 
@@ -24,6 +26,9 @@ export default function ImageSwatchOption({ option, onChange }) {
   const hasExplicitDefault = values.some((v) => v.isDefault);
   const [filePickerOpen, setFilePickerOpen] = useState(false);
   const [editingIndex, setEditingIndex] = useState(null);
+  const [dragOverIndex, setDragOverIndex] = useState(null);
+  const [uploadingIndex, setUploadingIndex] = useState(null);
+  const uploadFetcher = useFetcher();
 
   const addValue = useCallback(() => {
     onChange({
@@ -73,6 +78,35 @@ export default function ImageSwatchOption({ option, onChange }) {
     setFilePickerOpen(true);
   }, []);
 
+  const handleFileDrop = useCallback(async (index, file) => {
+    if (!file || !file.type.startsWith("image/")) return;
+    setUploadingIndex(index);
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch("/app/api/files", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.url) {
+        const newValues = [...values];
+        newValues[index] = {
+          ...newValues[index],
+          imageUrl: data.url,
+          name: newValues[index].name || data.alt || "",
+        };
+        onChange({ ...option, values: newValues });
+      }
+    } catch (e) {
+      console.error("Upload failed:", e);
+    } finally {
+      setUploadingIndex(null);
+    }
+  }, [values, option, onChange]);
+
   const handleFileSelect = useCallback((file) => {
     if (editingIndex !== null) {
       const newValues = [...values];
@@ -106,12 +140,32 @@ export default function ImageSwatchOption({ option, onChange }) {
             <button
               type="button"
               onClick={() => openFilePicker(index)}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "copy";
+                setDragOverIndex(index);
+              }}
+              onDragLeave={() => setDragOverIndex(null)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDragOverIndex(null);
+                const file = e.dataTransfer.files?.[0];
+                if (file) handleFileDrop(index, file);
+              }}
               style={{
                 width: "80px",
                 height: "80px",
-                border: value.imageUrl ? "none" : "2px dashed var(--p-color-border)",
+                border: dragOverIndex === index
+                  ? "2px solid var(--p-color-border-interactive-active)"
+                  : value.imageUrl
+                    ? "none"
+                    : "2px dashed var(--p-color-border)",
                 borderRadius: "8px",
-                background: value.imageUrl ? "transparent" : "var(--p-color-bg-surface-secondary)",
+                background: dragOverIndex === index
+                  ? "var(--p-color-bg-surface-secondary-hover)"
+                  : value.imageUrl
+                    ? "transparent"
+                    : "var(--p-color-bg-surface-secondary)",
                 cursor: "pointer",
                 padding: 0,
                 overflow: "hidden",
@@ -119,10 +173,16 @@ export default function ImageSwatchOption({ option, onChange }) {
                 alignItems: "center",
                 justifyContent: "center",
                 flexShrink: 0,
+                transition: "border-color 0.15s, background 0.15s",
+                position: "relative",
               }}
               title={t("options.imageSwatch.chooseFromShopify")}
             >
-              {value.imageUrl ? (
+              {uploadingIndex === index ? (
+                <span style={{ color: "var(--p-color-icon-secondary)" }}>
+                  <Spinner size="small" />
+                </span>
+              ) : value.imageUrl ? (
                 <img
                   src={value.imageUrl}
                   alt={value.name || "Bild"}

@@ -214,17 +214,26 @@ export const loader = async ({ request, params }) => {
     }));
   }
   
-  // Format option surcharge values
+  // Parse and format option values (stored as JSON string in DB)
   if (configuration.options) {
-    configuration.options = configuration.options.map((opt) => ({
-      ...opt,
-      additionalPrice: parseFloat(opt.additionalPrice || 0).toFixed(2),
-      values: Array.isArray(opt.values) ? opt.values.map((v, idx) => ({
-        ...v,
-        id: v.id || ("v_" + opt.id + "_" + idx),
-        surcharge: v.surcharge !== undefined ? parseFloat(v.surcharge || 0).toFixed(2) : "0.00",
-      })) : [],
-    }));
+    configuration.options = configuration.options.map((opt) => {
+      let parsedValues = [];
+      try {
+        parsedValues = typeof opt.values === "string" ? JSON.parse(opt.values) : opt.values;
+        if (!Array.isArray(parsedValues)) parsedValues = [];
+      } catch {
+        parsedValues = [];
+      }
+      return {
+        ...opt,
+        additionalPrice: parseFloat(opt.additionalPrice || 0).toFixed(2),
+        values: parsedValues.map((v, idx) => ({
+          ...v,
+          id: v.id || ("v_" + opt.id + "_" + idx),
+          surcharge: v.surcharge !== undefined ? parseFloat(v.surcharge || 0).toFixed(2) : "0.00",
+        })),
+      };
+    });
   }
 
   // Load available product templates from the active theme
@@ -702,7 +711,7 @@ export default function ConfiguratorEditor() {
   const priceMode = configuration?.priceMode || "price-formula";
   const [priceFormula, setPriceFormula] = useState(configuration?.priceFormula || "");
   const [activateSurcharges, setActivateSurcharges] = useState(configuration?.activateSurcharges || false);
-  const [formulaModeSurcharges, setFormulaModeSurcharges] = useState(configuration?.formulaModeSurcharges ?? true);
+  const [formulaModeSurcharges] = useState(true);
   const [surchargesInFormula, setSurchargesInFormula] = useState(configuration?.surchargesInFormula || false);
   const [useVariantNameInFormula, setUseVariantNameInFormula] = useState(configuration?.useVariantNameInFormula ?? true);
   const [useUnifiedSku, setUseUnifiedSku] = useState(configuration?.useUnifiedSku || false);
@@ -926,7 +935,7 @@ export default function ConfiguratorEditor() {
     setVirtualVariants(configuration?.virtualVariants || []);
     setRules(configuration?.rules || []);
     setActivateSurcharges(configuration?.activateSurcharges || false);
-    setFormulaModeSurcharges(configuration?.formulaModeSurcharges ?? true);
+    // formulaModeSurcharges is always true (standard behavior)
     setSurchargesInFormula(configuration?.surchargesInFormula || false);
     setUseVariantNameInFormula(configuration?.useVariantNameInFormula ?? true);
     setUseUnifiedSku(configuration?.useUnifiedSku || false);
@@ -1549,23 +1558,12 @@ export default function ConfiguratorEditor() {
                   )}
 
                   {priceMode === "price-formula" && (
-                    <BlockStack gap="200">
-                      <Checkbox
-                        label={t("configuratorEditor.formulaSurcharges")}
-                        checked={formulaModeSurcharges}
-                        onChange={setFormulaModeSurcharges}
-                        disabled={surchargesInFormula}
-                      />
-                      <Checkbox
-                        label={t("configuratorEditor.surchargesInFormula")}
-                        checked={surchargesInFormula}
-                        onChange={(val) => {
-                          setSurchargesInFormula(val);
-                          if (val) setFormulaModeSurcharges(false);
-                        }}
-                        helpText={t("configuratorEditor.surchargesInFormulaHelp")}
-                      />
-                    </BlockStack>
+                    <Checkbox
+                      label={t("configuratorEditor.surchargesInFormula")}
+                      checked={surchargesInFormula}
+                      onChange={setSurchargesInFormula}
+                      helpText={t("configuratorEditor.surchargesInFormulaHelp")}
+                    />
                   )}
 
                   <Divider />

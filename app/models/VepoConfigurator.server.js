@@ -982,26 +982,59 @@ async function vepoDeleteOptionsFromProduct(productId, graphql) {
 }
 
 async function vepoCreateVirtualVariantsForProduct(productId, virtualVariants, graphql) {
-  const productTitle = await vepoGetProductTitle(productId, graphql);
   const productVariants = await vepoGetProductVariants(productId, graphql);
-  const maxVariants = Math.min(virtualVariants.length, 100);
-  const variantsToCreate = maxVariants - productVariants.length;
+  const sorted = [...virtualVariants].sort((a, b) => Number(a.variantPrice) - Number(b.variantPrice));
+  const maxVariants = Math.min(sorted.length, 100);
 
-  if (variantsToCreate <= 0) return;
+  // Update existing variants to match the first N virtual variants
+  const toUpdate = Math.min(productVariants.length, maxVariants);
+  if (toUpdate > 0) {
+    const updateInput = [];
+    for (let i = 0; i < toUpdate; i++) {
+      updateInput.push({
+        id: productVariants[i].node.id,
+        price: sorted[i].variantPrice.toString(),
+        optionValues: [
+          {
+            optionName: "Title",
+            name: sorted[i].variantHandle + "-" + Number(sorted[i].variantPrice),
+          },
+        ],
+      });
+    }
 
-  virtualVariants.sort((a, b) => Number(a.variantPrice) - Number(b.variantPrice));
+    const updateRes = await graphql(
+      `
+        mutation vepoUpdateVirtualVariants($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
+          productVariantsBulkUpdate(productId: $productId, variants: $variants) {
+            productVariants { id }
+            userErrors { field, message }
+          }
+        }
+      `,
+      { variables: { productId, variants: updateInput } }
+    );
 
-  const variantsInput = [];
-  for (let i = 0; i < variantsToCreate; i++) {
-    if (!virtualVariants[i]) break;
-    variantsInput.push({
-      price: virtualVariants[i].variantPrice.toString(),
+    const updateData = await updateRes.json();
+    if (updateData.data?.productVariantsBulkUpdate?.userErrors?.length > 0) {
+      console.error("[Vepo] Virtual variant update errors:", updateData.data.productVariantsBulkUpdate.userErrors);
+    }
+  }
+
+  // Create remaining virtual variants that exceed the existing count
+  const toCreate = maxVariants - productVariants.length;
+  if (toCreate <= 0) return;
+
+  const createInput = [];
+  for (let i = productVariants.length; i < maxVariants; i++) {
+    createInput.push({
+      price: sorted[i].variantPrice.toString(),
       inventoryPolicy: "CONTINUE",
       inventoryItem: { tracked: false, requiresShipping: true },
       optionValues: [
         {
           optionName: "Title",
-          name: virtualVariants[i].variantHandle + "-" + Number(virtualVariants[i].variantPrice),
+          name: sorted[i].variantHandle + "-" + Number(sorted[i].variantPrice),
         },
       ],
       metafields: [
@@ -1015,9 +1048,9 @@ async function vepoCreateVirtualVariantsForProduct(productId, virtualVariants, g
     });
   }
 
-  if (variantsInput.length === 0) return;
+  if (createInput.length === 0) return;
 
-  const response = await graphql(
+  const createRes = await graphql(
     `
       mutation vepoCreateVirtualVariants($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
         productVariantsBulkCreate(productId: $productId, variants: $variants) {
@@ -1026,12 +1059,12 @@ async function vepoCreateVirtualVariantsForProduct(productId, virtualVariants, g
         }
       }
     `,
-    { variables: { productId, variants: variantsInput } }
+    { variables: { productId, variants: createInput } }
   );
 
-  const data = await response.json();
-  if (data.data?.productVariantsBulkCreate?.userErrors?.length > 0) {
-    console.error("[Vepo] Virtual variant creation errors:", data.data.productVariantsBulkCreate.userErrors);
+  const createData = await createRes.json();
+  if (createData.data?.productVariantsBulkCreate?.userErrors?.length > 0) {
+    console.error("[Vepo] Virtual variant creation errors:", createData.data.productVariantsBulkCreate.userErrors);
   }
 }
 

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useFetcher } from "@remix-run/react";
 import {
   Modal,
@@ -9,8 +9,9 @@ import {
   InlineStack,
   BlockStack,
   EmptyState,
+  Banner,
 } from "@shopify/polaris";
-import { SearchIcon } from "@shopify/polaris-icons";
+import { SearchIcon, UploadIcon } from "@shopify/polaris-icons";
 import { useTranslation } from "../utils/i18n";
 
 export default function ShopifyFilePicker({ open, onClose, onSelect }) {
@@ -21,6 +22,43 @@ export default function ShopifyFilePicker({ open, onClose, onSelect }) {
   const [files, setFiles] = useState([]);
   const [pageInfo, setPageInfo] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState(null);
+  const fileInputRef = useRef(null);
+
+  const handleUpload = useCallback(async (file) => {
+    if (!file || !file.type.startsWith("image/")) return;
+    setUploading(true);
+    setUploadError(null);
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch("/app/api/files", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.error) {
+        setUploadError(data.error);
+      } else if (data.url) {
+        const newFile = {
+          id: data.id || `uploaded-${Date.now()}`,
+          url: data.url,
+          thumbnailUrl: data.url,
+          alt: data.alt || "",
+        };
+        setFiles((prev) => [newFile, ...prev]);
+        setSelectedFile(newFile);
+      }
+    } catch (e) {
+      setUploadError("Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -95,6 +133,66 @@ export default function ShopifyFilePicker({ open, onClose, onSelect }) {
     >
       <Modal.Section>
         <BlockStack gap="400">
+          <div
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "copy";
+              setIsDragOver(true);
+            }}
+            onDragLeave={() => setIsDragOver(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setIsDragOver(false);
+              const file = e.dataTransfer.files?.[0];
+              if (file) handleUpload(file);
+            }}
+            style={{
+              padding: "20px",
+              border: isDragOver
+                ? "2px solid var(--p-color-border-interactive-active)"
+                : "2px dashed var(--p-color-border)",
+              borderRadius: "8px",
+              background: isDragOver
+                ? "var(--p-color-bg-surface-secondary-hover)"
+                : "var(--p-color-bg-surface-secondary)",
+              textAlign: "center",
+              transition: "border-color 0.15s, background 0.15s",
+              cursor: "pointer",
+            }}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              style={{ display: "none" }}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleUpload(file);
+                e.target.value = "";
+              }}
+            />
+            {uploading ? (
+              <InlineStack gap="200" align="center" blockAlign="center">
+                <Spinner size="small" />
+                <Text variant="bodySm" tone="subdued">{t("filePicker.uploading")}</Text>
+              </InlineStack>
+            ) : (
+              <BlockStack gap="100" inlineAlign="center">
+                <span style={{ color: "var(--p-color-icon-secondary)" }}>
+                  <UploadIcon width={24} height={24} />
+                </span>
+                <Text variant="bodySm" tone="subdued">{t("filePicker.dropOrClick")}</Text>
+              </BlockStack>
+            )}
+          </div>
+
+          {uploadError && (
+            <Banner tone="critical" onDismiss={() => setUploadError(null)}>
+              {uploadError}
+            </Banner>
+          )}
+
           <TextField
             value={search}
             onChange={setSearch}

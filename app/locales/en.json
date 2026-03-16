@@ -137,7 +137,9 @@
     "searchPlaceholder": "Search file names...",
     "noImages": "No images found",
     "noImagesDesc": "No images were found in your Shopify files.",
-    "shopifyFile": "Shopify file"
+    "shopifyFile": "Shopify file",
+    "uploading": "Uploading image...",
+    "dropOrClick": "Drop image here or click to upload"
   },
 
   "virtualVariants": {
