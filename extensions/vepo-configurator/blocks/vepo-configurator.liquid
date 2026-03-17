@@ -32,36 +32,16 @@
   data-vepo-hide-surcharges="{{ block.settings.hide_surcharges }}"
   data-vepo-input-style="{{ block.settings.input_style }}"
   data-vepo-image-swatch-size="{{ block.settings.image_swatch_size }}"
+  data-vepo-required-color="{{ block.settings.required_marker_color }}"
 >
   <div class="vepo_loading">
-    <div id="vepo-lottie-loader" style="width:120px;height:120px;margin:0 auto;"></div>
+    <div class="vepo_spinner"></div>
   </div>
 </div>
 
 {{ 'vepo-configurator.css' | asset_url | stylesheet_tag }}
-<script src="{{ 'lottie-player.js' | asset_url }}" defer></script>
+<script>window.__vepoDataPromise = fetch("/apps/vepo").then(function(r){return r.json()}).catch(function(){return null});</script>
 <script src="{{ 'vepo-configurator.js' | asset_url }}" defer></script>
-<script>
-  (function() {
-    function initLottieLoader() {
-      var container = document.getElementById('vepo-lottie-loader');
-      if (container && typeof lottie !== 'undefined') {
-        lottie.loadAnimation({
-          container: container,
-          renderer: 'svg',
-          loop: true,
-          autoplay: true,
-          path: "{{ 'loading-animation.json' | asset_url }}"
-        });
-      }
-    }
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', initLottieLoader);
-    } else {
-      initLottieLoader();
-    }
-  })();
-</script>
 
 {% schema %}
 {
@@ -225,6 +205,13 @@
       "id": "headline_color",
       "label": "Überschriften-Farbe",
       "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "required_marker_color",
+      "label": "Pflichtfeld-Markierung Farbe",
+      "default": "#ff0000",
+      "info": "Farbe des * bei Pflichtfeldern"
     },
     {
       "type": "range",

@@ -23,6 +23,19 @@
   min-height: 150px;
 }
 
+.vepo_spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #e5e5e5;
+  border-top-color: var(--vepo-accent-color, #000);
+  border-radius: 50%;
+  animation: vepo-spin 0.7s linear infinite;
+}
+
+@keyframes vepo-spin {
+  to { transform: rotate(360deg); }
+}
+
 /* Headlines */
 .vepo_headline {
   font-size: var(--vepo-headline-size, 16px);
@@ -44,7 +57,7 @@
 
 .vepo_required::after {
   content: " *";
-  color: inherit;
+  color: var(--vepo-required-color, inherit);
 }
 
 /* Options container */
@@ -129,7 +142,7 @@
 }
 
 .vepo_button_swatch.vepo_selected {
-  border-color: var(--vepo-accent-color, #000);
+  border-color: var(--vepo-accent-color, #000) !important;
   background-color: var(--vepo-accent-color, #000);
   color: var(--vepo-btn-text-color, #fff);
 }
@@ -162,7 +175,8 @@
 }
 
 .vepo_color_swatch.vepo_selected {
-  border-color: var(--vepo-accent-color, #000);
+  border-color: var(--vepo-accent-color, #000) !important;
+  transform: scale(1.08);
 }
 
 /* Image Swatches */
@@ -197,7 +211,7 @@
 }
 
 .vepo_image_swatch.vepo_selected {
-  border-color: var(--vepo-accent-color, #000);
+  border-color: var(--vepo-accent-color, #000) !important;
 }
 
 .vepo_image_swatch_label {
@@ -493,7 +507,7 @@
 }
 
 .vepo_input_style--modern .vepo_button_swatch.vepo_selected {
-  border-color: var(--vepo-accent-color, #000);
+  border-color: var(--vepo-accent-color, #000) !important;
   background-color: var(--vepo-accent-color, #000);
   color: var(--vepo-btn-text-color, #fff);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
@@ -510,7 +524,7 @@
 }
 
 .vepo_input_style--modern .vepo_image_swatch.vepo_selected {
-  border-color: var(--vepo-accent-color, #000);
+  border-color: var(--vepo-accent-color, #000) !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
@@ -553,7 +567,7 @@
 }
 
 .vepo_input_style--filled .vepo_button_swatch.vepo_selected {
-  border-color: var(--vepo-accent-color, #000);
+  border-color: var(--vepo-accent-color, #000) !important;
   background-color: var(--vepo-accent-color, #000);
   color: var(--vepo-btn-text-color, #fff);
 }
@@ -564,7 +578,7 @@
 }
 
 .vepo_input_style--filled .vepo_image_swatch.vepo_selected {
-  border-color: var(--vepo-accent-color, #000);
+  border-color: var(--vepo-accent-color, #000) !important;
 }
 
 .vepo_input_style--filled .vepo_fileupload {

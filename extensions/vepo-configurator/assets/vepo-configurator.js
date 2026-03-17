@@ -57,6 +57,7 @@
     vepoContainer.style.setProperty("--vepo-headline-size", (d.vepoHeadlineSize || 16) + "px");
     vepoContainer.style.setProperty("--vepo-option-spacing", (d.vepoOptionSpacing || 16) + "px");
     vepoContainer.style.setProperty("--vepo-image-swatch-size", (d.vepoImageSwatchSize || 150) + "px");
+    vepoContainer.style.setProperty("--vepo-required-color", d.vepoRequiredColor || "#ff0000");
 
     // Input style class
     var inputStyle = d.vepoInputStyle || "classic";
@@ -77,43 +78,40 @@
 
   async function vepoLoadConfig(productId) {
     try {
-      // Check localStorage cache (30s during dev, increase for production)
-      const VEPO_CACHE_TTL = 30 * 1000;
-      const cached = localStorage.getItem("vepoProductData");
-      if (cached) {
+      let data = null;
+
+      if (window.__vepoDataPromise) {
+        data = await window.__vepoDataPromise;
+        window.__vepoDataPromise = null;
+      }
+
+      if (!data) {
         try {
-          const parsed = JSON.parse(cached);
-          const age = Date.now() - (parsed.timestamp || 0);
-          if (age < VEPO_CACHE_TTL) {
-            console.log("[Vepo] Using cached data (age: " + Math.round(age / 1000) + "s)");
-            vepoProcessConfig(parsed.data, productId);
-            return;
-          } else {
-            console.log("[Vepo] Cache expired, fetching fresh data");
-            localStorage.removeItem("vepoProductData");
+          const response = await fetch("/apps/vepo");
+          if (response.ok) {
+            data = await response.json();
           }
-        } catch (e) {
-          localStorage.removeItem("vepoProductData");
-        }
+        } catch (e) { /* fall through to cache */ }
       }
 
-      const response = await fetch("/apps/vepo");
-      if (!response.ok) {
-        const errorBody = await response.text().catch(() => "");
-        console.error("[Vepo] Proxy response status:", response.status, response.statusText);
-        console.error("[Vepo] Proxy response body:", errorBody);
-        throw new Error("Failed to load config (HTTP " + response.status + ")");
+      if (data) {
+        localStorage.setItem(
+          "vepoProductData",
+          JSON.stringify({ data, timestamp: Date.now() })
+        );
+        vepoProcessConfig(data, productId);
+        return;
       }
 
-      const data = await response.json();
+      var cached = localStorage.getItem("vepoProductData");
+      if (cached) {
+        var parsed = JSON.parse(cached);
+        console.log("[Vepo] Network failed, using cached data");
+        vepoProcessConfig(parsed.data, productId);
+        return;
+      }
 
-      // Cache in localStorage
-      localStorage.setItem(
-        "vepoProductData",
-        JSON.stringify({ data, timestamp: Date.now() })
-      );
-
-      vepoProcessConfig(data, productId);
+      throw new Error("No data available");
     } catch (error) {
       console.error("[Vepo] Error loading config:", error);
       vepoContainer.innerHTML = "";
@@ -374,10 +372,10 @@
     headline.className = "vepo_headline" + (option.required ? " vepo_required" : "");
     headline.textContent = option.name;
 
-    // Add surcharge to headline for text and file options (not in variant-price mode)
-    if ((option.type === "text" || option.type === "file") && 
-        option.hasAdditionalPrice && option.additionalPrice > 0 && 
-        vepoConfig?.priceMode !== "variant-price") {
+    if ((option.type === "text" || option.type === "file") &&
+        option.hasAdditionalPrice && option.additionalPrice > 0 &&
+        vepoConfig?.priceMode !== "variant-price" &&
+        !vepoConfig?.surchargesInFormula) {
       const surcharge = document.createElement("span");
       surcharge.className = "vepo_surcharge";
       surcharge.textContent = "+" + vepoFormatMoney(option.additionalPrice);
@@ -447,8 +445,9 @@
       btn.className = "vepo_button_swatch";
       btn.dataset.value = val.id || val.name;
       btn.textContent = val.name;
-      // Im Variantenpreis-Modus keine Aufpreise anzeigen (sind bereits in Variantenpreisen enthalten)
-      if (val.surcharge && parseFloat(val.surcharge) > 0 && vepoConfig?.priceMode !== "variant-price") {
+      if (val.surcharge && parseFloat(val.surcharge) > 0 &&
+          vepoConfig?.priceMode !== "variant-price" &&
+          !vepoConfig?.surchargesInFormula) {
         btn.innerHTML += `<span class="vepo_surcharge">+${val.surcharge}€</span>`;
       }
       btn.addEventListener("click", () => {
@@ -499,8 +498,9 @@
       optionEl.value = val.name;
       optionEl.dataset.value = val.id || val.name;
       optionEl.textContent = val.name;
-      // Im Variantenpreis-Modus keine Aufpreise anzeigen (sind bereits in Variantenpreisen enthalten)
-      if (val.surcharge && parseFloat(val.surcharge) > 0 && vepoConfig?.priceMode !== "variant-price") {
+      if (val.surcharge && parseFloat(val.surcharge) > 0 &&
+          vepoConfig?.priceMode !== "variant-price" &&
+          !vepoConfig?.surchargesInFormula) {
         optionEl.textContent += ` (+${val.surcharge}€)`;
       }
       optionEl.dataset.surcharge = val.surcharge || "0";
@@ -738,8 +738,9 @@
 
     const text = document.createElement("span");
     text.textContent = option.checkBoxLabel || option.name;
-    // Im Variantenpreis-Modus keine Aufpreise anzeigen (sind bereits in Variantenpreisen enthalten)
-    if (option.hasAdditionalPrice && option.additionalPrice > 0 && vepoConfig?.priceMode !== "variant-price") {
+    if (option.hasAdditionalPrice && option.additionalPrice > 0 &&
+        vepoConfig?.priceMode !== "variant-price" &&
+        !vepoConfig?.surchargesInFormula) {
       text.innerHTML += `<span class="vepo_surcharge">+${option.additionalPrice}€</span>`;
     }
     label.appendChild(text);
@@ -1320,9 +1321,5 @@
   // Start
   // ============================================================================
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", vepoInit);
-  } else {
-    vepoInit();
-  }
+  vepoInit();
 })();
